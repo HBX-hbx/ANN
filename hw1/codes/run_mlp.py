@@ -12,9 +12,9 @@ train_data, test_data, train_label, test_label = load_mnist_2d('data')
 # You should explore different model architecture
 
 model = Network()
-model.add(Linear('fc1', 784, 256, 0.01))
-model.add(Sigmoid('sg1'))
-model.add(Linear('fc2', 256, 10, 0.01))
+model.add(Linear('fc1', 784, 64, 0.01))
+model.add(Gelu('g1'))
+model.add(Linear('fc2', 64, 10, 0.01))
 # model.add(Sigmoid('sg2'))
 
 # model = Network()
@@ -32,10 +32,10 @@ loss = EuclideanLoss(name='loss')
 #       'disp_freq' denotes number of iterations in one epoch to display information.
 
 config = {
-    'learning_rate': 1e-2,
-    'weight_decay': 2e-3,
+    'learning_rate': 5e-2,
+    'weight_decay': 1e-4,
     'momentum': 0.9,
-    'batch_size': 100,
+    'batch_size': 50,
     'max_epoch': 100,
     'disp_freq': 50,
     'test_epoch': 5

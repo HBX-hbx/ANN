@@ -67,15 +67,21 @@ class Gelu(Layer):
     def forward(self, input):
         # TODO START
         '''Your codes here'''
-        mid1 = np.sqrt(2 / np.pi) * (input + 0.044715 * np.power(input, 3))
-        mid2 = 1 + np.tanh(mid1)
+        self._saved_for_backward(input)
+        mid1 = np.sqrt(2. / np.pi) * (input + 0.044715 * np.power(input, 3))
+        mid2 = 1. + np.tanh(mid1)
         return 0.5 * input * mid2
         # TODO END
     
     def backward(self, grad_output):
         # TODO START
         '''Your codes here'''
-        pass
+        delta = 1e-5
+        x1 = self._saved_tensor + delta
+        x2 = self._saved_tensor
+        y1 = 0.5 * x1 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x1 + 0.044715 * np.power(x1, 3))))
+        y2 = 0.5 * x2 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x2 + 0.044715 * np.power(x2, 3))))
+        return (y1 - y2) / delta
         # TODO END
 
 class Linear(Layer):
