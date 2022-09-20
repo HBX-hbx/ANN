@@ -153,7 +153,7 @@ model, loss, setting_path = one_hidden_layer()
 #       'disp_freq' denotes number of iterations in one epoch to display information.
 
 config = {
-    'learning_rate': 1e-3,
+    'learning_rate': 1e-4,
     'weight_decay': 2e-4,
     'momentum': 0.9,
     'batch_size': 100,

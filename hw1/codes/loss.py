@@ -1,7 +1,6 @@
 from __future__ import division
 from doctest import OutputChecker
 import numpy as np
-from IPython import embed
 
 
 class EuclideanLoss(object):
@@ -79,7 +78,6 @@ class HingeLoss(object):
         input[target > 0] -= self.margin  # 修正 input，抵消 k = t_n 情况
         res = self.margin - r_expand + input
         res = res * (res > 0)
-        # embed()
         return res.sum() / N
         # TODO END
 
