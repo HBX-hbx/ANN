@@ -132,6 +132,7 @@ def draw():
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend(('Train', 'Test'), loc='center right')
+    plt.title(setting_path[1:])
     plt.savefig(loss_path)
 
     plt.clf()
@@ -141,6 +142,7 @@ def draw():
     plt.xlabel('Epochs')
     plt.ylabel('ACC')
     plt.legend(('Train', 'Test'), loc='center right')
+    plt.title(setting_path[1:])
     plt.savefig(acc_path)
 
 
