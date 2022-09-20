@@ -18,36 +18,42 @@ def train_net(model, loss, config, inputs, labels, batch_size, disp_freq):
     loss_list = []
     acc_list = []
 
-    for input, label in data_iterator(inputs, labels, batch_size):
-        # print('input: ', input.shape)
-        target = onehot_encoding(label, 10)
-        # print('target: ', target.shape)
-        iter_counter += 1
+    with open('log.txt', 'w', encoding='utf-8') as f:
 
-        # forward net
-        output = model.forward(input)
-        # print('output: ', output.shape)
-        # calculate loss
-        loss_value = loss.forward(output, target)
-        # print('loss_value: ', loss_value)
-        # generate gradient w.r.t loss
-        grad = loss.backward(output, target)
-        # print('grad: ', grad.shape)
-        # backward gradient
+        for input, label in data_iterator(inputs, labels, batch_size):
+            # print('input: ', input)
+            target = onehot_encoding(label, 10)
+            # print('target: ', target)
+            iter_counter += 1
 
-        model.backward(grad)
-        # update layers' weights
-        model.update(config)
+            # forward net
+            output = model.forward(input)
+            # print('output: ', output)
+            # calculate loss
+            loss_value = loss.forward(output, target)
+            # f.write('\n')
+            # f.write('*' * 89)
+            # f.write('\nloss_value: \n')
+            # f.write(str(loss_value))
+            # generate gradient w.r.t loss
+            grad = loss.backward(output, target)
+            # f.write('\ngrad: \n')
+            # f.write(str(grad))
+            # backward gradient
 
-        acc_value = calculate_acc(output, label)
-        loss_list.append(loss_value)
-        acc_list.append(acc_value)
+            model.backward(grad)
+            # update layers' weights
+            model.update(config)
 
-        if iter_counter % disp_freq == 0:
-            msg = '  Training iter %d, batch loss %.4f, batch acc %.4f' % (iter_counter, np.mean(loss_list), np.mean(acc_list))
-            loss_list = []
-            acc_list = []
-            LOG_INFO(msg)
+            acc_value = calculate_acc(output, label)
+            loss_list.append(loss_value)
+            acc_list.append(acc_value)
+
+            if iter_counter % disp_freq == 0:
+                msg = '  Training iter %d, batch loss %.4f, batch acc %.4f' % (iter_counter, np.mean(loss_list), np.mean(acc_list))
+                loss_list = []
+                acc_list = []
+                LOG_INFO(msg)
 
 
 def test_net(model, loss, inputs, labels, batch_size):

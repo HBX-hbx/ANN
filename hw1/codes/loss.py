@@ -38,19 +38,26 @@ class SoftmaxCrossEntropyLoss(object):
     def forward(self, input, target):
         # TODO START
         '''
-        :param input: K * N (K: label_num = 10, N: batch_size)
-        :param target: K * N 
+        :param input: (batch_size=N, 10)
+        :param target: (batch_size=N, 10)
         '''
-        mid = np.exp(input)  # K * N
-        h = mid / np.sum(mid, 0)  # sum of the cols  K * N
-        E = - np.sum(target * np.log(h), 0)  # sum of the cols  1 * N
+        mid = np.exp(input)  # (N, K)
+        h = mid / np.sum(mid, axis=1, keepdims=True)  # sum of the rows  (N, K)
+        E = - np.sum(target * np.log(h), axis=1)  # sum of the rows  (N,)
         return np.average(E) 
         # TODO END
 
     def backward(self, input, target):
         # TODO START
-        '''Your codes here'''
-        pass
+        '''
+        :param input: (batch_size=N, 10)
+        :param target: (batch_size=N, 10)
+        '''
+        N, K = input.shape
+        mid = np.exp(input)  # (N, K)
+        h = mid / np.sum(mid, axis=1, keepdims=True)  # sum of the rows  (N, K)
+        tr_sum = np.matmul(target.sum(axis=1, keepdims=True), np.ones(K).reshape(1, K))  # 对 target 按行求和再扩充 (N, K)
+        return - (target - tr_sum * h) / N
         # TODO END
 
 
@@ -62,27 +69,31 @@ class HingeLoss(object):
     def forward(self, input, target):
         # TODO START 
         '''
-        :param input: K * N (K: label_num = 10, N: batch_size)
-        :param target: 1 * N
+        :param input: (batch_size=N, K=10)
+        :param target: (batch_size=N, K=10)
         '''
+        N, K = input.shape
+        r_expand = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
+        input[target > 0] -= self.margin  # 修正 input，抵消 k = t_n 情况
+        res = self.margin - r_expand + input
 
-        K, N = input.shape
-        Margin = self.margin * np.ones(input.shape)  # (K, N)
-        idx_arr = input[target, np.array(range(N))]  # for x^n_n  (1, N)
-        idx_matrix = np.ones((K, 1)) * idx_arr  # (K, 1) * (1, N)
-
-        delta_matrix = np.zeros(input.shape)  # (K, N)
-        delta_matrix[target, np.array(range(N))] = self.margin  # (K, N)
-
-        input = input - delta_matrix  # 修正
-        res = Margin - idx_matrix + input
-
-        return res * (res > 0)  # max(0, res)
+        return res * (res > 0)
         # TODO END
 
     def backward(self, input, target):
         # TODO START
-        '''Your codes here'''
-        pass
+        '''
+        :param input: (batch_size=N, K=10)
+        :param target: (batch_size=N, K=10)
+        '''
+        N, K = input.shape
+        mid = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
+        mid = self.margin - mid + input
+
+        res = np.ones(input.shape)
+        res[target > 0] = 0  # 第一项
+        res[mid <= 0] = 0  # 第二项
+
+        return res
         # TODO END
 

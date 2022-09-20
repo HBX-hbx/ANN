@@ -68,8 +68,8 @@ class Gelu(Layer):
         # TODO START
         '''Your codes here'''
         self._saved_for_backward(input)
-        mid1 = np.sqrt(2. / np.pi) * (input + 0.044715 * np.power(input, 3))
-        mid2 = 1. + np.tanh(mid1)
+        mid1 = np.sqrt(2 / np.pi) * (input + 0.044715 * np.power(input, 3))
+        mid2 = 1 + np.tanh(mid1)
         return 0.5 * input * mid2
         # TODO END
     
@@ -81,7 +81,8 @@ class Gelu(Layer):
         x2 = self._saved_tensor
         y1 = 0.5 * x1 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x1 + 0.044715 * np.power(x1, 3))))
         y2 = 0.5 * x2 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x2 + 0.044715 * np.power(x2, 3))))
-        return (y1 - y2) / delta
+        return grad_output * (y1 - y2) / delta
+        pass
         # TODO END
 
 class Linear(Layer):
@@ -104,6 +105,7 @@ class Linear(Layer):
         :param input: batch_size * in_num
         '''
         self._saved_for_backward(input)
+        # print('W: ', self.W)
         return np.matmul(input, self.W) + self.b  # xW + b: 1 * out_num
         # TODO END
 
@@ -114,7 +116,7 @@ class Linear(Layer):
         :return (batch_size, in_dim) 对输入 input 的梯度
         '''
         self.grad_W = np.matmul(self._saved_tensor.T, grad_output)  # (in_dim, bsz) * (bsz, ou_dim)
-        self.grad_b = grad_output.sum(axis=0)  # 按行求和
+        self.grad_b = grad_output.mean(axis=0)  # 按行求平均
         return np.matmul(grad_output, self.W.T)  # (bsz, out_dim) * (out_dim, in_dim)
         # TODO END
 
