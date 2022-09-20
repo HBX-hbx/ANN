@@ -1,5 +1,7 @@
 from __future__ import division
+from doctest import OutputChecker
 import numpy as np
+from IPython import embed
 
 
 class EuclideanLoss(object):
@@ -76,8 +78,9 @@ class HingeLoss(object):
         r_expand = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
         input[target > 0] -= self.margin  # 修正 input，抵消 k = t_n 情况
         res = self.margin - r_expand + input
-
-        return res * (res > 0)
+        res = res * (res > 0)
+        # embed()
+        return res.sum() / N
         # TODO END
 
     def backward(self, input, target):
@@ -87,13 +90,13 @@ class HingeLoss(object):
         :param target: (batch_size=N, K=10)
         '''
         N, K = input.shape
-        mid = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
-        mid = self.margin - mid + input
 
-        res = np.ones(input.shape)
-        res[target > 0] = 0  # 第一项
-        res[mid <= 0] = 0  # 第二项
+        r_expand = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
+        mid = self.margin - r_expand + input
 
+        res = np.zeros(input.shape)
+        res[mid > 0] = 1
+        res[target > 0] -= res.sum(axis=1)
         return res
         # TODO END
 

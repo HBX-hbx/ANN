@@ -14,16 +14,16 @@ np.random.seed(42)
 # Your model defintion here
 # You should explore different model architecture
 
-model = Network()
+# model = Network()
 # model.add(Linear('fc1', 784, 10, 0.01))
 # model.add(Sigmoid('g1'))
 # model.add(Linear('fc2', 256, 10, 0.01))
 # model.add(Sigmoid('sg2'))
 
 model = Network()
-model.add(Linear('fc1', 784, 10, 0.01))
-# model.add(Sigmoid('re1'))
-# model.add(Linear('fc2', 256, 10, 0.01))
+model.add(Linear('fc1', 784, 128, 0.01))
+model.add(Sigmoid('sg1'))
+model.add(Linear('fc2', 128, 10, 0.01))
 # model.add(Sigmoid('re2'))
 
 # loss = EuclideanLoss(name='loss')
@@ -38,10 +38,10 @@ loss = HingeLoss(name='loss')
 
 config = {
     'learning_rate': 1e-3,
-    'weight_decay': 1e-4,
-    'momentum': 0.09,
+    'weight_decay': 2e-4,
+    'momentum': 0.9,
     'batch_size': 100,
-    'max_epoch': 100,
+    'max_epoch': 10,
     'disp_freq': 50,
     'test_epoch': 5
 }
