@@ -21,7 +21,7 @@ train_loss_list = []  # loss every display
 train_acc_list  = []  # accuracy every display
 test_loss_list = []  # loss every display
 test_acc_list  = []  # accuracy every display
-figure_path = os.path.join(os.getcwd(), 'figures')
+
 
 np.random.seed(42)
 
@@ -147,6 +147,11 @@ def draw():
 
 
 model, loss, setting_path = one_hidden_layer()
+figure_path = os.path.join(os.getcwd(), 'figures1')
+
+# model, loss, setting_path = two_hidden_layer()
+# figure_path = os.path.join(os.getcwd(), 'figures2')
+
 
 # Training configuration
 # You should adjust these hyperparameters
