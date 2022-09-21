@@ -146,11 +146,11 @@ def draw():
     plt.savefig(acc_path)
 
 
-model, loss, setting_path = one_hidden_layer()
-figure_path = os.path.join(os.getcwd(), 'figures1')
+# model, loss, setting_path = one_hidden_layer()
+# figure_path = os.path.join(os.getcwd(), 'figures1')
 
-# model, loss, setting_path = two_hidden_layer()
-# figure_path = os.path.join(os.getcwd(), 'figures2')
+model, loss, setting_path = two_hidden_layer()
+figure_path = os.path.join(os.getcwd(), 'figures2')
 
 
 # Training configuration
