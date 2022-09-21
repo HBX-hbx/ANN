@@ -130,6 +130,3 @@ class Linear(Layer):
 
         self.diff_b = mm * self.diff_b + (self.grad_b + wd * self.b)
         self.b = self.b - lr * self.diff_b
-
-        # print('self.diff_W: \n', self.diff_W)
-        # print('self.diff_b:', self.diff_b)

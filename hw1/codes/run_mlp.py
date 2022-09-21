@@ -123,8 +123,12 @@ def two_hidden_layer():
 
 def draw():
     LOG_INFO('saving figures to %s' % figure_path)
-    loss_path = os.path.join(figure_path, 'Loss' + setting_path)
-    acc_path = os.path.join(figure_path, 'Acc' + setting_path)
+
+    # loss_path = os.path.join(figure_path, 'Loss' + setting_path)
+    # acc_path = os.path.join(figure_path, 'Acc' + setting_path)
+    loss_path = os.path.join(figure_path, 'Loss_' + str(config['learning_rate'])[2:])
+    acc_path = os.path.join(figure_path, 'Acc_' + str(config['learning_rate'])[2:])
+
     epoch_list = list(range(len(train_loss_list)))
 
     plt.plot(epoch_list, train_loss_list)
@@ -132,7 +136,8 @@ def draw():
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend(('Train', 'Test'), loc='center right')
-    plt.title(setting_path[1:])
+    # plt.title(setting_path[1:])
+    plt.title('lr: ' + str(config['learning_rate']))
     plt.savefig(loss_path)
 
     plt.clf()
@@ -142,15 +147,16 @@ def draw():
     plt.xlabel('Epochs')
     plt.ylabel('ACC')
     plt.legend(('Train', 'Test'), loc='center right')
-    plt.title(setting_path[1:])
+    # plt.title(setting_path[1:])
+    plt.title('lr: ' + str(config['learning_rate']))
     plt.savefig(acc_path)
 
 
-# model, loss, setting_path = one_hidden_layer()
-# figure_path = os.path.join(os.getcwd(), 'figures1')
+model, loss, setting_path = one_hidden_layer()
+figure_path = os.path.join(os.getcwd(), 'figures_lr')
 
-model, loss, setting_path = two_hidden_layer()
-figure_path = os.path.join(os.getcwd(), 'figures2')
+# model, loss, setting_path = two_hidden_layer()
+# figure_path = os.path.join(os.getcwd(), 'figures2')
 
 
 # Training configuration
@@ -160,11 +166,11 @@ figure_path = os.path.join(os.getcwd(), 'figures2')
 #       'disp_freq' denotes number of iterations in one epoch to display information.
 
 config = {
-    'learning_rate': 1e-4,
-    'weight_decay': 2e-4,
+    'learning_rate': 0.001,
+    'weight_decay': 0.0002,
     'momentum': 0.9,
     'batch_size': 100,
-    'max_epoch': 100,
+    'max_epoch': 50,
     'disp_freq': 100,
     'test_epoch': 1
 }
