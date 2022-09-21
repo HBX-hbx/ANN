@@ -209,9 +209,169 @@ config = {
 
 ### 3.1 调参
 
-调参实验主要考虑 `lr: learning_rate`、`bsz: batch_size`、`mm: momentum` 以及 `wd: weight_decay` 四个超参。
+调参实验主要考虑 `lr: learning_rate`、`bsz: batch_size`、`mm: momentum` 以及 `wd: weight_decay` 四个超参。初步设置 `base` 参数如下：
 
+```python
+config = {
+    'learning_rate': 1e-2,
+    'weight_decay': 2e-4,
+    'momentum': 0.9,
+    'batch_size': 100,
+    'max_epoch': 50,
+    'disp_freq': 100,
+    'test_epoch': 1
+}
+```
 
+根据前文结果，选择单层 `MLP`，以`SoftmaxCELoss` 作为损失函数，以 `Gelu` 作为激活函数。
+
+#### 3.1.1 learning_rate
+
+选择 `lr` 分别为 $0.1$、$0.01$、$0.001$、$0.0001$ 进行实验，最后一步的实验结果如下（`ACC` / `Loss`）：
+
+|    lr    |      Train      |       Test        |
+| :------: | :-------------: | :---------------: |
+|  $0.1$   | $0.9804/0.0586$ | $0.96900/0.10192$ |
+|  $0.01$  | $0.9936/0.0285$ | $0.97600/0.07064$ |
+| $0.001$  | $0.9557/0.1590$ | $0.94920/0.16999$ |
+| $0.0001$ | $0.8937/0.3846$ | $0.89570/0.37922$ |
+
++ `Accuracy` 结果图如下：
+
+<figure>
+<img src="./codes/figures_lr/Acc_1.png" width=290/>
+<img src="./codes/figures_lr/Acc_01.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_lr/Acc_001.png" width=290/>
+<img src="./codes/figures_lr/Acc_0001.png" width=290/>
+</figure>
+
++ `Loss` 结果图如下：
+
+<figure>
+<img src="./codes/figures_lr/Loss_1.png" width=290/>
+<img src="./codes/figures_lr/Loss_01.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_lr/Loss_001.png" width=290/>
+<img src="./codes/figures_lr/Loss_0001.png" width=290/>
+</figure>
+
+分析：可以看出，在 `lr = 0.01` 时效果最好，$50$ 个 epochs 跑出来的 `Train` 和 `Test` 上的 `ACC` 最大，并且明显优于其他几组设置。另外可以看出，`lr` 比较大，比如 `lr = 0.1` 的时候出现了很大的抖动，原因是当 `lr` 太大时，每次更新模型参数的时候步幅过大，以至于可能在最优解附近徘徊，出现波动的情况；另一方面，当 `lr` 比较小时，模型很容易陷入局部最优解中，无法跳出来寻找全局最优解，可以看到 `lr = 0.001` 和 `lr = 0.0001` 的训练准确率明显低于 `lr` 较高的两组。
+
+#### 3.1.2 batch_size
+
+选择 `bsz` 分别为 $10$、$50$、$100$、$200$ 进行实验，最后一步的实验结果如下（`ACC` / `Loss`）：
+
+|  bsz  |      Train      |       Test        |
+| :---: | :-------------: | :---------------: |
+| $10$  | $0.9900/0.0443$ | $0.97310/0.08815$ |
+| $50$  | $0.9962/0.0209$ | $0.97470/0.07244$ |
+| $100$ | $0.9936/0.0285$ | $0.97600/0.07064$ |
+| $200$ | $0.9879/0.0487$ | $0.97340/0.08154$ |
+
++ `Accuracy` 结果图如下：
+
+<figure>
+<img src="./codes/figures_bsz/Acc_10.png" width=290/>
+<img src="./codes/figures_bsz/Acc_50.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_bsz/Acc_100.png" width=290/>
+<img src="./codes/figures_bsz/Acc_200.png" width=290/>
+</figure>
+
++ `Loss` 结果图如下：
+
+<figure>
+<img src="./codes/figures_bsz/Loss_10.png" width=290/>
+<img src="./codes/figures_bsz/Loss_50.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_bsz/Loss_100.png" width=290/>
+<img src="./codes/figures_bsz/Loss_200.png" width=290/>
+</figure>
+
+分析：可以看出，在 `bsz = 100` 时学习效果是最好的，当 `bsz` 较小的时候，由于不能充分利用并行导致训练较慢，当 `bsz` 越来越趋向于 $1$ 的时候，有可能导致模型学不出东西来的情况，以至于出现波动。当 `bsz` 较大的时候，能够充分利用内存，一个 `batch` 里的数据可以平衡个体差异，使得损失以及回传的梯度更加稳定，从而使得模型梯度下降的方向更加稳定，这也可以从上面图中的曲线光滑程度可以看出来。
+
+#### 3.1.3 momentum
+
+选择 `mm` 分别为 $0$、$0.5$、$0.9$、$0.99$ 进行实验，最后一步的实验结果如下（`ACC` / `Loss`）：
+
+|   mm   |      Train      |       Test        |
+| :----: | :-------------: | :---------------: |
+|  $0$   | $0.9552/0.1588$ | $0.94960/0.16939$ |
+| $0.5$  | $0.9728/0.0988$ | $0.96550/0.11409$ |
+| $0.9$  | $0.9936/0.0285$ | $0.97600/0.07064$ |
+| $0.99$ | $0.9712/0.0963$ | $0.95830/0.13981$ |
+
++ `Accuracy` 结果图如下：
+
+<figure>
+<img src="./codes/figures_mm/Acc_.png" width=290/>
+<img src="./codes/figures_mm/Acc_5.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_mm/Acc_9.png" width=290/>
+<img src="./codes/figures_mm/Acc_99.png" width=290/>
+</figure>
+
++ `Loss` 结果图如下：
+
+<figure>
+<img src="./codes/figures_mm/Loss_.png" width=290/>
+<img src="./codes/figures_mm/Loss_5.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_mm/Loss_9.png" width=290/>
+<img src="./codes/figures_mm/Loss_99.png" width=290/>
+</figure>
+
+分析：可以看出，当 `mm = 0.9` 的时候，即收敛速度接近快 $10$ 倍的时候效果是最好的。从 `momentum` 参与梯度更新的式子可以看出，其作用相当于放大梯度的变化。当 `mm` 太小的时候，梯度更新较慢，模型收敛速度较慢，在给定的 max_epoch 情况下准确率较低；当 `mm` 较大的时候，梯度更新幅度更大，相当于是在参数空间梯度下降步幅太大，以至于出现波动，无法到达最优解的情况。适当的 `mm` 可以帮助模型跳出局部最优解，寻找更接近全局最优解的地方，并加速模型的收敛，减少训练时间。
+
+#### 3.1.4 weight_decay
+
+选择 `wd` 分别为 $0$、$0.0002$、$0.002$、$0.02$ 进行实验，最后一步的实验结果如下（`ACC` / `Loss`）：
+
+|    wd    |      Train      |       Test        |
+| :------: | :-------------: | :---------------: |
+|   $0$    | $0.9967/0.0166$ | $0.97610/0.07582$ |
+| $0.0002$ | $0.9936/0.0285$ | $0.97600/0.07064$ |
+| $0.002$  | $0.9737/0.1031$ | $0.96930/0.11209$ |
+|  $0.02$  | $0.9097/0.3662$ | $0.91070/0.35487$ |
+
++ `Accuracy` 结果图如下：
+
+<figure>
+<img src="./codes/figures_wd/Acc_.png" width=290/>
+<img src="./codes/figures_wd/Acc_0002.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_wd/Acc_002.png" width=290/>
+<img src="./codes/figures_wd/Acc_02.png" width=290/>
+</figure>
+
++ `Loss` 结果图如下：
+
+<figure>
+<img src="./codes/figures_wd/Loss_.png" width=290/>
+<img src="./codes/figures_wd/Loss_0002.png" width=290/>
+</figure>
+
+<figure>
+<img src="./codes/figures_wd/Loss_002.png" width=290/>
+<img src="./codes/figures_wd/Loss_02.png" width=290/>
+</figure>
+
+分析：从四组实验的结果可以看出，当 `wd = 0` 或者有比较小的 `wd = 2e-4`  时，模型的表现都很好。从 `wd` 参与梯度计算的式子可以看出，`wd` 的作用是乘在模型参数 `W` 上，是用来惩罚过大的模型参数的，因此是用于防止过拟合的。当 `wd` 较大的时候，对模型参数的惩罚过大，以至于模型的损失函数中正则化项的权重太大，而本身与目标之间的损失项反而下降的速度会减慢，导致模型最后表现并不是很好。而对于本实验的图像分类任务，训练量和参数量保证了不会出现过拟合现象，最多只是 `HingeLoss` 的稍微过拟合，因此 `wd = 0` 仍然表现很好。
 
 ### 3.2 计算稳定性
 

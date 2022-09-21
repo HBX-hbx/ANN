@@ -126,8 +126,8 @@ def draw():
 
     # loss_path = os.path.join(figure_path, 'Loss' + setting_path)
     # acc_path = os.path.join(figure_path, 'Acc' + setting_path)
-    loss_path = os.path.join(figure_path, 'Loss_' + str(config['learning_rate'])[2:])
-    acc_path = os.path.join(figure_path, 'Acc_' + str(config['learning_rate'])[2:])
+    loss_path = os.path.join(figure_path, 'Loss_' + str(config['weight_decay'])[2:])
+    acc_path = os.path.join(figure_path, 'Acc_' + str(config['weight_decay'])[2:])
 
     epoch_list = list(range(len(train_loss_list)))
 
@@ -137,7 +137,7 @@ def draw():
     plt.ylabel('Loss')
     plt.legend(('Train', 'Test'), loc='center right')
     # plt.title(setting_path[1:])
-    plt.title('lr: ' + str(config['learning_rate']))
+    plt.title('wd: ' + str(config['weight_decay']))
     plt.savefig(loss_path)
 
     plt.clf()
@@ -148,12 +148,12 @@ def draw():
     plt.ylabel('ACC')
     plt.legend(('Train', 'Test'), loc='center right')
     # plt.title(setting_path[1:])
-    plt.title('lr: ' + str(config['learning_rate']))
+    plt.title('wd: ' + str(config['weight_decay']))
     plt.savefig(acc_path)
 
 
 model, loss, setting_path = one_hidden_layer()
-figure_path = os.path.join(os.getcwd(), 'figures_lr')
+figure_path = os.path.join(os.getcwd(), 'figures_wd')
 
 # model, loss, setting_path = two_hidden_layer()
 # figure_path = os.path.join(os.getcwd(), 'figures2')
@@ -166,8 +166,8 @@ figure_path = os.path.join(os.getcwd(), 'figures_lr')
 #       'disp_freq' denotes number of iterations in one epoch to display information.
 
 config = {
-    'learning_rate': 0.001,
-    'weight_decay': 0.0002,
+    'learning_rate': 1e-2,
+    'weight_decay': 0.02,
     'momentum': 0.9,
     'batch_size': 100,
     'max_epoch': 50,
