@@ -12,7 +12,7 @@ import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--loss', type=int, default=0, help='0: EuclideanLoss\n1: SoftmaxCrossEntropyLoss\n2: HingeLoss')
-parser.add_argument('--act', type=int, default=0, help='0: Sigmoid\n1: ReLU\n2: GeLU')
+parser.add_argument('--act', type=int, default=0, help='0: Sigmoid\n1: Relu\n2: Gelu')
 args = parser.parse_args()
 
 train_data, test_data, train_label, test_label = load_mnist_2d('data')
@@ -123,11 +123,11 @@ def two_hidden_layer():
 
 def draw():
     LOG_INFO('saving figures to %s' % figure_path)
+    if not os.path.exists(figure_path):
+        os.makedirs(figure_path)
 
-    # loss_path = os.path.join(figure_path, 'Loss' + setting_path)
-    # acc_path = os.path.join(figure_path, 'Acc' + setting_path)
-    loss_path = os.path.join(figure_path, 'Loss_' + str(config['weight_decay'])[2:])
-    acc_path = os.path.join(figure_path, 'Acc_' + str(config['weight_decay'])[2:])
+    loss_path = os.path.join(figure_path, 'Loss' + setting_path)
+    acc_path = os.path.join(figure_path, 'Acc' + setting_path)
 
     epoch_list = list(range(len(train_loss_list)))
 
@@ -136,8 +136,7 @@ def draw():
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend(('Train', 'Test'), loc='center right')
-    # plt.title(setting_path[1:])
-    plt.title('wd: ' + str(config['weight_decay']))
+    plt.title(setting_path[1:])
     plt.savefig(loss_path)
 
     plt.clf()
@@ -147,13 +146,12 @@ def draw():
     plt.xlabel('Epochs')
     plt.ylabel('ACC')
     plt.legend(('Train', 'Test'), loc='center right')
-    # plt.title(setting_path[1:])
-    plt.title('wd: ' + str(config['weight_decay']))
+    plt.title(setting_path[1:])
     plt.savefig(acc_path)
 
 
 model, loss, setting_path = one_hidden_layer()
-figure_path = os.path.join(os.getcwd(), 'figures_wd')
+figure_path = os.path.join(os.getcwd(), 'figures1')
 
 # model, loss, setting_path = two_hidden_layer()
 # figure_path = os.path.join(os.getcwd(), 'figures2')
@@ -167,10 +165,10 @@ figure_path = os.path.join(os.getcwd(), 'figures_wd')
 
 config = {
     'learning_rate': 1e-2,
-    'weight_decay': 0.02,
+    'weight_decay': 2e-4,
     'momentum': 0.9,
     'batch_size': 100,
-    'max_epoch': 50,
+    'max_epoch': 10,
     'disp_freq': 100,
     'test_epoch': 1
 }

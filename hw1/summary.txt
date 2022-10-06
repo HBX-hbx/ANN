@@ -1,0 +1,333 @@
+########################
+# Additional Files
+########################
+# README.md
+
+########################
+# Filled Code
+########################
+# ..\codes\layers.py:1
+        self._saved_for_backward(input)
+        return (abs(input) + input) / 2  # max(0, input)
+
+# ..\codes\layers.py:2
+        grad_output[self._saved_tensor <= 0] = 0
+        return grad_output
+
+# ..\codes\layers.py:3
+        res = 1.0 / (1 + np.exp(-input))
+        self._saved_for_backward(res)
+        return res
+
+# ..\codes\layers.py:4
+        '''
+        :param grad_output: (1, output_dim)
+        '''
+        return self._saved_tensor * (1.0 - self._saved_tensor) * grad_output
+
+# ..\codes\layers.py:5
+        self._saved_for_backward(input)
+        mid1 = np.sqrt(2 / np.pi) * (input + 0.044715 * np.power(input, 3))
+        mid2 = 1 + np.tanh(mid1)
+        return 0.5 * input * mid2
+
+# ..\codes\layers.py:6
+        delta = 1e-5
+        x1 = self._saved_tensor + delta
+        x2 = self._saved_tensor
+        y1 = 0.5 * x1 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x1 + 0.044715 * np.power(x1, 3))))
+        y2 = 0.5 * x2 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x2 + 0.044715 * np.power(x2, 3))))
+        return grad_output * (y1 - y2) / delta
+
+# ..\codes\layers.py:7
+        '''
+        :param input: batch_size * in_num
+        '''
+        self._saved_for_backward(input)
+        return np.matmul(input, self.W) + self.b  # xW + b: 1 * out_num
+
+# ..\codes\layers.py:8
+        '''
+        :param grad_output: (batch_size, out_num) 对输出 output 的梯度
+        :return (batch_size, in_dim) 对输入 input 的梯度
+        '''
+        self.grad_W = np.matmul(self._saved_tensor.T, grad_output)  # (in_dim, bsz) * (bsz, ou_dim)
+        self.grad_b = grad_output.mean(axis=0)  # 按行求平均
+        return np.matmul(grad_output, self.W.T)  # (bsz, out_dim) * (out_dim, in_dim)
+
+# ..\codes\loss.py:1
+        '''
+        :param input: (batch_size=N, 10)
+        :param target: (batch_size=N, 10)
+        :return loss: (1, 1)
+        '''
+        N = input.shape[0]
+        return np.power(input - target, 2).sum() / (2.0 * N)
+
+
+# ..\codes\loss.py:2
+        '''
+        :param input: (batch_size=N, 10)
+        :param target: (batch_size=N, 10)
+        :return
+        '''
+        N = input.shape[0]
+        return (input - target) / N
+
+# ..\codes\loss.py:3
+        '''
+        :param input: (batch_size=N, 10)
+        :param target: (batch_size=N, 10)
+        '''
+        mid = np.exp(input)  # (N, K)
+        h = mid / np.sum(mid, axis=1, keepdims=True)  # sum of the rows  (N, K)
+        E = - np.sum(target * np.log(h), axis=1)  # sum of the rows  (N,)
+        return np.average(E)
+
+# ..\codes\loss.py:4
+        '''
+        :param input: (batch_size=N, 10)
+        :param target: (batch_size=N, 10)
+        '''
+        N, K = input.shape
+        mid = np.exp(input)  # (N, K)
+        h = mid / np.sum(mid, axis=1, keepdims=True)  # sum of the rows  (N, K)
+        tr_sum = np.matmul(target.sum(axis=1, keepdims=True), np.ones(K).reshape(1, K))  # 对 target 按行求和再扩充 (N, K)
+        return - (target - tr_sum * h) / N
+
+# ..\codes\loss.py:5
+        '''
+        :param input: (batch_size=N, K=10)
+        :param target: (batch_size=N, K=10)
+        '''
+        N, K = input.shape
+        r_expand = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
+        input[target > 0] -= self.margin  # 修正 input，抵消 k = t_n 情况
+        res = self.margin - r_expand + input
+        res = res * (res > 0)
+        return res.sum() / N
+
+# ..\codes\loss.py:6
+        '''
+        :param input: (batch_size=N, K=10)
+        :param target: (batch_size=N, K=10)
+        '''
+        N, K = input.shape
+
+        r_expand = np.matmul(input[target > 0].reshape(N, 1), np.ones(K).reshape(1, K))  # (N, K)
+        mid = self.margin - r_expand + input
+
+        res = np.zeros(input.shape)
+        res[mid > 0] = 1
+        res[target > 0] -= res.sum(axis=1)
+        return res
+
+
+########################
+# References
+########################
+
+########################
+# Other Modifications
+########################
+# _codes\solve_net.py -> ..\codes\solve_net.py
+# 15 - def train_net(model, loss, config, inputs, labels, batch_size, disp_freq):
+# 15 + def train_net(model, loss, config, inputs, labels, batch_size, disp_freq, train_loss_list, train_acc_list):
+# 15 ?                                                                         +++++++++++++++++++++++++++++++++
+# 20 +     one_epoch_loss_list = []
+# 21 +     one_epoch_acc_list = []
+# 24 -
+# 44 +             one_epoch_loss_list.append(np.mean(loss_list))
+# 45 +             one_epoch_acc_list.append(np.mean(acc_list))
+# 49 +
+# 50 +     train_loss_list.append(np.mean(one_epoch_loss_list))
+# 51 +     train_acc_list.append(np.mean(one_epoch_acc_list))
+# 48 - def test_net(model, loss, inputs, labels, batch_size):
+# 54 + def test_net(model, loss, inputs, labels, batch_size, test_loss_list, test_acc_list):
+# 54 ?                                                     +++++++++++++++++++++++++++++++
+# 67 +     test_loss_list.append(np.mean(loss_list))
+# 68 +     test_acc_list.append(np.mean(acc_list))
+# _codes\loss.py -> ..\codes\loss.py
+# 66 +         self.margin = margin
+# _codes\run_mlp.py -> ..\codes\run_mlp.py
+# 7 + from matplotlib import pyplot as plt
+# 8 + import numpy as np
+# 9 + import argparse
+# 10 + import os
+# 12 +
+# 13 + parser = argparse.ArgumentParser()
+# 14 + parser.add_argument('--loss', type=int, default=0, help='0: EuclideanLoss\n1: SoftmaxCrossEntropyLoss\n2: HingeLoss')
+# 15 + parser.add_argument('--act', type=int, default=0, help='0: Sigmoid\n1: Relu\n2: Gelu')
+# 16 + args = parser.parse_args()
+# 20 + train_loss_list = []  # loss every display
+# 21 + train_acc_list  = []  # accuracy every display
+# 22 + test_loss_list = []  # loss every display
+# 23 + test_acc_list  = []  # accuracy every display
+# 24 +
+# 25 +
+# 26 + np.random.seed(42)
+# 27 +
+# 13 - model = Network()
+# 14 - model.add(Linear('fc1', 784, 10, 0.01))
+# 31 + def one_hidden_layer():
+# 32 +     linear1 = Linear('fc1', 784, 128, 0.01)
+# 33 +     linear2 = Linear('fc2', 128, 10, 0.01)
+# 34 +     setting_path = ''
+# 35 +     loss = None
+# 36 +     if args.loss == 0:
+# 16 - loss = EuclideanLoss(name='loss')
+# 37 +         loss = EuclideanLoss(name='loss')
+# 37 ? ++++++++
+# 38 +         setting_path += '_EuclideanLoss'
+# 39 +         LOG_INFO('using loss: EuclideanLoss')
+# 40 +     elif args.loss == 1:
+# 41 +         loss = SoftmaxCrossEntropyLoss(name='loss')
+# 42 +         setting_path += '_SoftmaxCrossEntropyLoss'
+# 43 +         LOG_INFO('using loss: SoftmaxCrossEntropyLoss')
+# 44 +     elif args.loss == 2:
+# 45 +         loss = HingeLoss(name='loss')
+# 46 +         setting_path += '_HingeLoss'
+# 47 +         LOG_INFO('using loss: HingeLoss')
+# 48 +     else:
+# 49 +         raise ValueError('Undefined loss: %d' % args.loss)
+# 50 +
+# 51 +     activate_func = None
+# 52 +     if args.act == 0:
+# 53 +         activate_func = Sigmoid('activate')
+# 54 +         setting_path += '_Sigmoid'
+# 55 +         LOG_INFO('using act: Sigmoid')
+# 56 +     elif args.act == 1:
+# 57 +         activate_func = Relu('activate')
+# 58 +         setting_path += '_Relu'
+# 59 +         LOG_INFO('using act: Relu')
+# 60 +     elif args.act == 2:
+# 61 +         activate_func = Gelu('activate')
+# 62 +         setting_path += '_Gelu'
+# 63 +         LOG_INFO('using act: Gelu')
+# 64 +     else:
+# 65 +         raise ValueError('Undefined activate function: %d' % args.act)
+# 66 +
+# 67 +     model = Network()
+# 68 +     model.add(linear1)
+# 69 +     model.add(activate_func)
+# 70 +     model.add(linear2)
+# 71 +
+# 72 +     return model, loss, setting_path
+# 73 +
+# 74 + def two_hidden_layer():
+# 75 +     linear1 = Linear('fc1', 784, 256, 0.01)
+# 76 +     linear2 = Linear('fc2', 256, 128, 0.01)
+# 77 +     linear3 = Linear('fc3', 128, 10, 0.01)
+# 78 +     setting_path = ''
+# 79 +     loss = None
+# 80 +     if args.loss == 0:
+# 81 +         loss = EuclideanLoss(name='loss')
+# 82 +         setting_path += '_EuclideanLoss'
+# 83 +         LOG_INFO('using loss: EuclideanLoss')
+# 84 +     elif args.loss == 1:
+# 85 +         loss = SoftmaxCrossEntropyLoss(name='loss')
+# 86 +         setting_path += '_SoftmaxCrossEntropyLoss'
+# 87 +         LOG_INFO('using loss: SoftmaxCrossEntropyLoss')
+# 88 +     elif args.loss == 2:
+# 89 +         loss = HingeLoss(name='loss')
+# 90 +         setting_path += '_HingeLoss'
+# 91 +         LOG_INFO('using loss: HingeLoss')
+# 92 +     else:
+# 93 +         raise ValueError('Undefined loss: %d' % args.loss)
+# 94 +
+# 95 +     activate_func1 = None
+# 96 +     activate_func2 = None
+# 97 +     if args.act == 0:
+# 98 +         activate_func1 = Sigmoid('activate')
+# 99 +         activate_func2 = Sigmoid('activate')
+# 100 +         setting_path += '_Sigmoid'
+# 101 +         LOG_INFO('using act: Sigmoid')
+# 102 +     elif args.act == 1:
+# 103 +         activate_func1 = Relu('activate')
+# 104 +         activate_func2 = Relu('activate')
+# 105 +         setting_path += '_Relu'
+# 106 +         LOG_INFO('using act: Relu')
+# 107 +     elif args.act == 2:
+# 108 +         activate_func1 = Gelu('activate')
+# 109 +         activate_func2 = Gelu('activate')
+# 110 +         setting_path += '_Gelu'
+# 111 +         LOG_INFO('using act: Gelu')
+# 112 +     else:
+# 113 +         raise ValueError('Undefined activate function: %d' % args.act)
+# 114 +
+# 115 +     model = Network()
+# 116 +     model.add(linear1)
+# 117 +     model.add(activate_func1)
+# 118 +     model.add(linear2)
+# 119 +     model.add(activate_func2)
+# 120 +     model.add(linear3)
+# 121 +
+# 122 +     return model, loss, setting_path
+# 123 +
+# 124 + def draw():
+# 125 +     LOG_INFO('saving figures to %s' % figure_path)
+# 126 +     if not os.path.exists(figure_path):
+# 127 +         os.makedirs(figure_path)
+# 128 +
+# 129 +     loss_path = os.path.join(figure_path, 'Loss' + setting_path)
+# 130 +     acc_path = os.path.join(figure_path, 'Acc' + setting_path)
+# 131 +
+# 132 +     epoch_list = list(range(len(train_loss_list)))
+# 133 +
+# 134 +     plt.plot(epoch_list, train_loss_list)
+# 135 +     plt.plot(epoch_list, test_loss_list)
+# 136 +     plt.xlabel('Epochs')
+# 137 +     plt.ylabel('Loss')
+# 138 +     plt.legend(('Train', 'Test'), loc='center right')
+# 139 +     plt.title(setting_path[1:])
+# 140 +     plt.savefig(loss_path)
+# 141 +
+# 142 +     plt.clf()
+# 143 +
+# 144 +     plt.plot(epoch_list, train_acc_list)
+# 145 +     plt.plot(epoch_list, test_acc_list)
+# 146 +     plt.xlabel('Epochs')
+# 147 +     plt.ylabel('ACC')
+# 148 +     plt.legend(('Train', 'Test'), loc='center right')
+# 149 +     plt.title(setting_path[1:])
+# 150 +     plt.savefig(acc_path)
+# 151 +
+# 152 +
+# 153 + model, loss, setting_path = one_hidden_layer()
+# 154 + figure_path = os.path.join(os.getcwd(), 'figures1')
+# 155 +
+# 156 + # model, loss, setting_path = two_hidden_layer()
+# 157 + # figure_path = os.path.join(os.getcwd(), 'figures2')
+# 158 +
+# 25 -     'learning_rate': 0.0,
+# 25 ?                      ^^^
+# 167 +     'learning_rate': 1e-2,
+# 167 ?                      ^^^^
+# 26 -     'weight_decay': 0.0,
+# 26 ?                     ^^^
+# 168 +     'weight_decay': 2e-4,
+# 168 ?                     ^^^^
+# 27 -     'momentum': 0.0,
+# 27 ?                   ^
+# 169 +     'momentum': 0.9,
+# 169 ?                   ^
+# 29 -     'max_epoch': 100,
+# 29 ?                    -
+# 171 +     'max_epoch': 10,
+# 30 -     'disp_freq': 50,
+# 30 ?                  ^
+# 172 +     'disp_freq': 100,
+# 172 ?                  ^^
+# 31 -     'test_epoch': 5
+# 31 ?                   ^
+# 173 +     'test_epoch': 1
+# 173 ?                   ^
+# 37 -     train_net(model, loss, config, train_data, train_label, config['batch_size'], config['disp_freq'])
+# 179 +     train_net(model, loss, config, train_data, train_label, config['batch_size'], config['disp_freq'], train_loss_list, train_acc_list)
+# 179 ?                                                                                                      +++++++++++++++++++++++++++++++++
+# 41 -         test_net(model, loss, test_data, test_label, config['batch_size'])
+# 183 +         test_net(model, loss, test_data, test_label, config['batch_size'], test_loss_list, test_acc_list)
+# 183 ?                                                                          +++++++++++++++++++++++++++++++
+# 184 +
+# 185 + draw()
+

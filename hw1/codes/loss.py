@@ -1,12 +1,10 @@
 from __future__ import division
-from doctest import OutputChecker
 import numpy as np
 
 
 class EuclideanLoss(object):
     def __init__(self, name):
         self.name = name
-
 
     def forward(self, input, target):
         # TODO START
