@@ -7,11 +7,10 @@ from torch.nn.parameter import Parameter
 
 class BatchNorm1d(nn.Module):
 	# TODO START
-	def __init__(self, num_features, eps=1e-5, momentum=0.1, is_train=True):
+	def __init__(self, num_features, eps=1e-5, momentum=0.1):
 		super(BatchNorm1d, self).__init__()
 		self.num_features = num_features
 		self.momentum = momentum
-		self.is_train = is_train
 		self.eps = eps
 
 		# Parameters
@@ -28,9 +27,9 @@ class BatchNorm1d(nn.Module):
 
 	def forward(self, input):
 		# input: [batch_size, num_feature_map * height * width]
-		if self.is_train: # training
-			mu = input.mean(axis=1).reshape(-1, 1) # 按行求平均 (bsz, 1)
-			var = input.var(axis=1).reshape(-1, 1) # (bsz, 1)
+		if self.training: # training
+			mu = input.mean(axis=1, keepdims=True) # (bsz, 1)
+			var = input.var(axis=1, keepdims=True) # (bsz, 1)
 			self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mu
 			self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var
 		else: # eval
@@ -42,15 +41,15 @@ class BatchNorm1d(nn.Module):
 
 class Dropout(nn.Module):
 	# TODO START
-	def __init__(self, p=0.5, is_train=True):
+	def __init__(self, p=0.5):
 		super(Dropout, self).__init__()
 		self.p = p
-		self.is_train = is_train
 
 	def forward(self, input):
 		# input: [batch_size, num_feature_map * height * width]
-		if self.is_train: # training
-			return input / (1. - self.p)
+		if self.training: # training
+			mask = torch.ones(input.shape)*(1 - self.p)
+			return input * torch.bernoulli(mask.cuda()) / (1. - self.p)
 		# eval
 		return input
 	# TODO END
@@ -60,23 +59,21 @@ class Model(nn.Module):
 		super(Model, self).__init__()
 		# TODO START
 		# Define your layers here
-		self.linear1 = nn.Linear(32 * 32 * 3, 1024)
-		self.BN = BatchNorm1d(num_features=1024)
-		self.relu = nn.ReLU()
-		self.dropout = Dropout(p=drop_rate)
-		self.linear2 = nn.Linear(1024, 10)
+		hidden_size = 1024
+		self.network = nn.Sequential(
+			nn.Linear(32 * 32 * 3, hidden_size),
+			BatchNorm1d(num_features=hidden_size),
+			nn.ReLU(),
+			Dropout(p=drop_rate),
+			nn.Linear(hidden_size, 10)
+		)
 		# TODO END
 		self.loss = nn.CrossEntropyLoss()
 
 	def forward(self, x, y=None):
 		# TODO START
 		# the 10-class prediction output is named as "logits"
-		logits = self.linear1(x)
-		logits = self.BN(logits)
-		logits = self.relu(logits)
-		logits = self.dropout(logits)
-		logits = self.linear2(logits)
-		y = y.to(torch.long)
+		logits = self.network(x)
 		# TODO END
 
 		pred = torch.argmax(logits, 1)  # Calculate the prediction result

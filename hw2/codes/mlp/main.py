@@ -14,13 +14,13 @@ from load_data import load_cifar_2d
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--batch_size', type=int, default=100,
+parser.add_argument('--batch_size', type=int, default=200,
 	help='Batch size for mini-batch training and evaluating. Default: 100')
-parser.add_argument('--num_epochs', type=int, default=20,
-	help='Number of training epoch. Default: 20')
-parser.add_argument('--learning_rate', type=float, default=1e-3,
+parser.add_argument('--num_epochs', type=int, default=50,
+	help='Number of training epoch. Default: 50')
+parser.add_argument('--learning_rate', type=float, default=1e-4,
 	help='Learning rate during optimization. Default: 1e-3')
-parser.add_argument('--drop_rate', type=float, default=0.5,
+parser.add_argument('--drop_rate', type=float, default=0.3,
 	help='Drop rate of the Dropout Layer. Default: 0.5')
 parser.add_argument('--is_train', type=bool, default=True,
 	help='True to train and False to inference. Default: True')
@@ -31,6 +31,8 @@ parser.add_argument('--train_dir', type=str, default='./train',
 parser.add_argument('--inference_version', type=int, default=0,
 	help='The version for inference. Set 0 to use latest checkpoint. Default: 0')
 args = parser.parse_args()
+
+torch.cuda.manual_seed(42)
 
 
 def shuffle(X, y, shuffle_parts):

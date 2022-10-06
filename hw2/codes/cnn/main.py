@@ -10,14 +10,14 @@ import torch.nn as nn
 import torch.optim as optim
 
 from model import Model
-from load_data import load_cifar_2d
+from load_data import load_cifar_4d
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--batch_size', type=int, default=100,
 	help='Batch size for mini-batch training and evaluating. Default: 100')
-parser.add_argument('--num_epochs', type=int, default=20,
-	help='Number of training epoch. Default: 20')
+parser.add_argument('--num_epochs', type=int, default=50,
+	help='Number of training epoch. Default: 50')
 parser.add_argument('--learning_rate', type=float, default=1e-3,
 	help='Learning rate during optimization. Default: 1e-3')
 parser.add_argument('--drop_rate', type=float, default=0.5,
@@ -102,10 +102,10 @@ if __name__ == '__main__':
 	if not os.path.exists(args.train_dir):
 		os.mkdir(args.train_dir)
 	if args.is_train:
-		X_train, X_test, y_train, y_test = load_cifar_2d(args.data_dir)
+		X_train, X_test, y_train, y_test = load_cifar_4d(args.data_dir)
 		X_val, y_val = X_train[40000:], y_train[40000:]
 		X_train, y_train = X_train[:40000], y_train[:40000]
-		mlp_model = Model(drop_rate=drop_rate)
+		mlp_model = Model(drop_rate=args.drop_rate)
 		mlp_model.to(device)
 		print(mlp_model)
 		optimizer = optim.Adam(mlp_model.parameters(), lr=args.learning_rate)
@@ -165,4 +165,3 @@ if __name__ == '__main__':
 			if result == y_test[i]:
 				count += 1
 		print("test accuracy: {}".format(float(count) / len(X_test)))
-nt) / len(X_test)))
