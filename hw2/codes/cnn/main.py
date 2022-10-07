@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from matplotlib import pyplot as plt
 
 from model import Model
 from load_data import load_cifar_4d
@@ -30,7 +31,67 @@ parser.add_argument('--train_dir', type=str, default='./train',
 	help='Training directory for saving model. Default: ./train')
 parser.add_argument('--inference_version', type=int, default=0,
 	help='The version for inference. Set 0 to use latest checkpoint. Default: 0')
+parser.add_argument('--figure_path', type=str, default=os.path.join(os.getcwd(), 'figures'),
+	help='The path to save figures for mlp. Default: ./figures')
+parser.add_argument('--log_path', type=str, default=os.path.join(os.getcwd(), 'logs'),
+	help='The path to save logs for mlp. Default: ./logs')
 args = parser.parse_args()
+
+torch.cuda.manual_seed(42)
+
+setting_path = 'bsz_' + str(args.batch_size) + '_lr_' + str(args.learning_rate) + '_drop_' + str(args.drop_rate)
+save_setting_path = '_bsz_' + str(args.batch_size) + '_lr_' + str(args.learning_rate)[2:] + '_drop_' + str(args.drop_rate)[2:]
+train_loss_list = []  # loss every display
+train_acc_list  = []  # accuracy every display
+valid_loss_list = []  # loss every display
+valid_acc_list =  []  # accuracy every display
+final_test_loss = 1e18
+final_test_acc = 0.0
+best_val_acc = 0.0
+
+
+def draw():
+    print('saving figures to %s' % args.figure_path)
+    if not os.path.exists(args.figure_path):
+        os.makedirs(args.figure_path)
+
+    loss_path = os.path.join(args.figure_path, 'Loss' + save_setting_path)
+    acc_path = os.path.join(args.figure_path, 'Acc' + save_setting_path)
+
+    epoch_list = list(range(len(train_loss_list)))
+
+    plt.plot(epoch_list, train_loss_list)
+    plt.plot(epoch_list, valid_loss_list)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend(('Train', 'Valid'), loc='center right')
+    plt.title(setting_path)
+    print(loss_path)
+    plt.savefig(loss_path)
+
+    plt.clf()
+
+    plt.plot(epoch_list, train_acc_list)
+    plt.plot(epoch_list, valid_acc_list)
+    plt.xlabel('Epochs')
+    plt.ylabel('ACC')
+    plt.legend(('Train', 'Valid'), loc='center right')
+    plt.title(setting_path)
+    plt.savefig(acc_path)
+
+
+def log():
+	print('saving logs to %s' % args.log_path)
+	if not os.path.exists(args.log_path):
+		os.makedirs(args.log_path)
+	with open(os.path.join(args.log_path, setting_path), 'w+') as f:
+		f.write("  training loss:                 " + str(train_loss_list[-1]) + "\n")
+		f.write("  training accuracy:             " + str(train_acc_list[-1]) + "\n")
+		f.write("  validation loss:               " + str(valid_loss_list[-1]) + "\n")
+		f.write("  validation accuracy:           " + str(valid_acc_list[-1]) + "\n")
+		f.write("  best validation accuracy:      " + str(best_val_acc) + "\n")
+		f.write("  final test loss:               " + str(test_loss) + "\n")
+		f.write("  final test accuracy:           " + str(test_acc) + "\n")
 
 
 def shuffle(X, y, shuffle_parts):
@@ -127,6 +188,8 @@ if __name__ == '__main__':
 				best_val_acc = val_acc
 				best_epoch = epoch
 				test_acc, test_loss = valid_epoch(mlp_model, X_test, y_test)
+				final_test_loss = test_loss
+				final_test_acc = test_acc
 				# with open(os.path.join(args.train_dir, 'checkpoint_{}.pth.tar'.format(epoch)), 'wb') as fout:
 				# 	torch.save(mlp_model, fout)
 				# with open(os.path.join(args.train_dir, 'checkpoint_0.pth.tar'), 'wb') as fout:
@@ -143,6 +206,10 @@ if __name__ == '__main__':
 			print("  best validation accuracy:      " + str(best_val_acc))
 			print("  test loss:                     " + str(test_loss))
 			print("  test accuracy:                 " + str(test_acc))
+			train_loss_list.append(train_loss)
+			train_acc_list.append(train_acc)
+			valid_loss_list.append(val_loss)
+			valid_acc_list.append(val_acc)
 
 			if train_loss > max(pre_losses):
 				for param_group in optimizer.param_groups:
@@ -156,7 +223,7 @@ if __name__ == '__main__':
 		if os.path.exists(model_path):
 			mlp_model = torch.load(model_path)
 
-		X_train, X_test, y_train, y_test = load_cifar_2d(args.data_dir)
+		X_train, X_test, y_train, y_test = load_cifar_4d(args.data_dir)
 
 		count = 0
 		for i in range(len(X_test)):
@@ -165,3 +232,6 @@ if __name__ == '__main__':
 			if result == y_test[i]:
 				count += 1
 		print("test accuracy: {}".format(float(count) / len(X_test)))
+
+	draw()
+	log()

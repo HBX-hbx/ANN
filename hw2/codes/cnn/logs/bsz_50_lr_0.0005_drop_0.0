@@ -1,0 +1,7 @@
+  training loss:                 0.01686857915679866
+  training accuracy:             0.9954499927163124
+  validation loss:               1.6131478682160378
+  validation accuracy:           0.7421999830007553
+  best validation accuracy:      0.7622999814152718
+  final test loss:               1.2741496366262437
+  final test accuracy:           0.7513999825716019

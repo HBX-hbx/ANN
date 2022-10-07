@@ -1,5 +1,5 @@
-export CUDA_VISIBLE_DEVICES=0
-for batch_size in 50 500
+export CUDA_VISIBLE_DEVICES=5
+for batch_size in 100 200
 do
 
 
