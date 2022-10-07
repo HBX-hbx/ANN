@@ -21,8 +21,8 @@ parser.add_argument('--num_epochs', type=int, default=50,
 	help='Number of training epoch. Default: 50')
 parser.add_argument('--learning_rate', type=float, default=1e-3,
 	help='Learning rate during optimization. Default: 1e-3')
-parser.add_argument('--drop_rate', type=float, default=0.5,
-	help='Drop rate of the Dropout Layer. Default: 0.5')
+parser.add_argument('--drop_rate', type=float, default=0.0,
+	help='Drop rate of the Dropout Layer. Default: 0.0')
 parser.add_argument('--is_train', type=bool, default=True,
 	help='True to train and False to inference. Default: True')
 parser.add_argument('--data_dir', type=str, default='../cifar-10_data',

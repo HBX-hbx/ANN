@@ -64,14 +64,14 @@ class Model(nn.Module):
 			# (batch_size, 3, 32, 32)
 			nn.Conv2d(in_channels=3, out_channels=hidden_channels[0], kernel_size=kernel_size[0]),
 			# (batch_size, 256, 28, 28)
-			BatchNorm2d(hidden_channels[0]),
+			# BatchNorm2d(hidden_channels[0]),
 			nn.ReLU(),
 			Dropout(p=drop_rate),
 			nn.MaxPool2d(kernel_size=2, stride=2),
 			# (batch_size, 256, 14, 14)
 			nn.Conv2d(in_channels=hidden_channels[0], out_channels=hidden_channels[1], kernel_size=kernel_size[1]),
 			# (batch_size, 256, 10, 10)
-			BatchNorm2d(hidden_channels[1]),
+			# BatchNorm2d(hidden_channels[1]),
 			nn.ReLU(),
 			Dropout(p=drop_rate),
 			nn.MaxPool2d(kernel_size=2, stride=2),
