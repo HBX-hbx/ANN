@@ -48,8 +48,9 @@ class Dropout(nn.Module):
 	def forward(self, input):
 		# input: [batch_size, num_feature_map * height * width]
 		if self.training: # training
-			mask = torch.ones(input.shape)*(1 - self.p)
-			return input * torch.bernoulli(mask.cuda()) / (1. - self.p)
+			mask = torch.ones(input.shape).cuda()
+			mask *= (1 - self.p)
+			return input * torch.bernoulli(mask) / (1. - self.p)
 		# eval
 		return input
 	# TODO END

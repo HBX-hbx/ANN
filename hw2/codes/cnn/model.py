@@ -47,8 +47,11 @@ class Dropout(nn.Module):
 	def forward(self, input):
 		# input: [batch_size, num_feature_map, height, width]
 		if self.training: # training
-			mask = torch.ones(input.shape[:2])*(1 - self.p)
-			return input * torch.bernoulli(mask.cuda()).unsqueeze(-1).unsqueeze(-1) / (1. - self.p)
+			# mask = torch.ones(input.shape[:2])*(1 - self.p)
+			# return input * torch.bernoulli(mask.cuda()).unsqueeze(-1).unsqueeze(-1) / (1. - self.p)
+			mask = torch.ones(input.shape).cuda()
+			mask *= (1 - self.p)
+			return input * torch.bernoulli(mask) / (1. - self.p)
 		# eval
 		return input
 	# TODO END
@@ -64,14 +67,14 @@ class Model(nn.Module):
 			# (batch_size, 3, 32, 32)
 			nn.Conv2d(in_channels=3, out_channels=hidden_channels[0], kernel_size=kernel_size[0]),
 			# (batch_size, 256, 28, 28)
-			# BatchNorm2d(hidden_channels[0]),
+			BatchNorm2d(hidden_channels[0]),
 			nn.ReLU(),
 			Dropout(p=drop_rate),
 			nn.MaxPool2d(kernel_size=2, stride=2),
 			# (batch_size, 256, 14, 14)
 			nn.Conv2d(in_channels=hidden_channels[0], out_channels=hidden_channels[1], kernel_size=kernel_size[1]),
 			# (batch_size, 256, 10, 10)
-			# BatchNorm2d(hidden_channels[1]),
+			BatchNorm2d(hidden_channels[1]),
 			nn.ReLU(),
 			Dropout(p=drop_rate),
 			nn.MaxPool2d(kernel_size=2, stride=2),
