@@ -1,0 +1,277 @@
+########################
+# Additional Files
+########################
+# run.sh
+# README.md
+
+########################
+# Filled Code
+########################
+# ..\codes\mlp\model.py:1
+    def __init__(self, num_features, eps=1e-5, momentum=0.1):
+        self.momentum = momentum
+        self.eps = eps
+        self.weight = Parameter(torch.Tensor(num_features)) # will be optimized
+        self.bias = Parameter(torch.Tensor(num_features))   # will be optimized
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        init.ones_(self.weight)
+        init.zeros_(self.bias)
+        if self.training: # training
+            mu = input.mean(axis=1, keepdims=True) # (bsz, 1)
+            var = input.var(axis=1, keepdims=True) # (bsz, 1)
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mu
+            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var
+        else: # eval
+            mu = self.running_mean
+            var = self.running_var
+        res = (input - mu) / torch.sqrt(var + self.eps)
+        return self.weight * res + self.bias
+
+# ..\codes\mlp\model.py:2
+        if self.training: # training
+            mask = torch.ones(input.shape).cuda()
+            mask *= (1 - self.p)
+            return input * torch.bernoulli(mask) / (1. - self.p)
+        # eval
+
+# ..\codes\mlp\model.py:3
+        hidden_size = 1024
+        self.network = nn.Sequential(
+            nn.Linear(32 * 32 * 3, hidden_size),
+            BatchNorm1d(num_features=hidden_size),
+            nn.ReLU(),
+            Dropout(p=drop_rate),
+            nn.Linear(hidden_size, 10)
+        )
+
+# ..\codes\mlp\model.py:4
+        logits = self.network(x)
+
+# ..\codes\cnn\model.py:1
+    def __init__(self, num_features, eps=1e-5, momentum=0.1):
+        self.momentum = momentum
+        self.eps = eps
+        self.weight = Parameter(torch.Tensor(num_features)) # will be optimized
+        self.bias = Parameter(torch.Tensor(num_features))   # will be optimized
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        init.ones_(self.weight)
+        init.zeros_(self.bias)
+        # input: [batch_size, num_feature_map, height, width]
+        if self.training: # training
+            mu = input.mean([0, 2, 3])
+            var = input.var([0, 2, 3])
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mu
+            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var
+        else: # eval
+            mu = self.running_mean
+            var = self.running_var
+        res = (input - mu[:, None, None]) / torch.sqrt(var[:, None, None] + self.eps)
+        return self.weight[:, None, None] * res + self.bias[:, None, None]
+
+# ..\codes\cnn\model.py:2
+        # input: [batch_size, num_feature_map, height, width]
+        if self.training: # training
+            '''Dropout2d'''
+            mask = torch.ones(input.shape[:2]).cuda()
+            mask *= (1 - self.p)
+            return input * torch.bernoulli(mask).unsqueeze(-1).unsqueeze(-1) / (1. - self.p)
+            '''Dropout1d'''
+            # mask = torch.ones(input.shape).cuda()
+            # mask *= (1 - self.p)
+            # return input * torch.bernoulli(mask) / (1. - self.p)
+        # eval
+
+# ..\codes\cnn\model.py:3
+        hidden_channels = [256, 256]
+        kernel_size = [5, 5]
+        self.network = nn.Sequential(
+            # (batch_size, 3, 32, 32)
+            nn.Conv2d(in_channels=3, out_channels=hidden_channels[0], kernel_size=kernel_size[0]),
+            # (batch_size, 256, 28, 28)
+            BatchNorm2d(hidden_channels[0]),
+            nn.ReLU(),
+            Dropout(p=drop_rate),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            # (batch_size, 256, 14, 14)
+            nn.Conv2d(in_channels=hidden_channels[0], out_channels=hidden_channels[1], kernel_size=kernel_size[1]),
+            # (batch_size, 256, 10, 10)
+            BatchNorm2d(hidden_channels[1]),
+            nn.ReLU(),
+            Dropout(p=drop_rate),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            # (batch_size, 256, 5, 5)
+        )
+        self.linear = nn.Linear(hidden_channels[1] * 5 * 5, 10)
+
+# ..\codes\cnn\model.py:4
+        logits = self.network(x)
+        logits = logits.reshape(logits.shape[0], -1)
+        logits = self.linear(logits)
+
+
+########################
+# References
+########################
+
+########################
+# Other Modifications
+########################
+# _codes\mlp\main.py -> ..\codes\mlp\main.py
+# 11 + from matplotlib import pyplot as plt
+# 34 + parser.add_argument('--figure_path', type=str, default=os.path.join(os.getcwd(), 'figures'),
+# 35 +     help='The path to save figures for mlp. Default: ./figures')
+# 36 + parser.add_argument('--log_path', type=str, default=os.path.join(os.getcwd(), 'logs'),
+# 37 +     help='The path to save logs for mlp. Default: ./logs')
+# 39 +
+# 40 + torch.cuda.manual_seed(42)
+# 41 +
+# 42 + setting_path = 'bsz_' + str(args.batch_size) + '_lr_' + str(args.learning_rate) + '_drop_' + str(args.drop_rate)
+# 43 + save_setting_path = '_bsz_' + str(args.batch_size) + '_lr_' + str(args.learning_rate)[2:] + '_drop_' + str(args.drop_rate)[2:]
+# 44 + train_loss_list = []  # loss every display
+# 45 + train_acc_list  = []  # accuracy every display
+# 46 + valid_loss_list = []  # loss every display
+# 47 + valid_acc_list =  []  # accuracy every display
+# 48 + final_test_loss = 1e18
+# 49 + final_test_acc = 0.0
+# 50 + best_val_acc = 0.0
+# 51 +
+# 52 +
+# 53 + def draw():
+# 54 +     print('saving figures to %s' % args.figure_path)
+# 55 +     if not os.path.exists(args.figure_path):
+# 56 +         os.makedirs(args.figure_path)
+# 57 +
+# 58 +     loss_path = os.path.join(args.figure_path, 'Loss' + save_setting_path)
+# 59 +     acc_path = os.path.join(args.figure_path, 'Acc' + save_setting_path)
+# 60 +
+# 61 +     epoch_list = list(range(len(train_loss_list)))
+# 62 +
+# 63 +     plt.plot(epoch_list, train_loss_list)
+# 64 +     plt.plot(epoch_list, valid_loss_list)
+# 65 +     plt.xlabel('Epochs')
+# 66 +     plt.ylabel('Loss')
+# 67 +     plt.legend(('Train', 'Valid'), loc='center right')
+# 68 +     plt.title(setting_path)
+# 69 +     print(loss_path)
+# 70 +     plt.savefig(loss_path)
+# 71 +
+# 72 +     plt.clf()
+# 73 +
+# 74 +     plt.plot(epoch_list, train_acc_list)
+# 75 +     plt.plot(epoch_list, valid_acc_list)
+# 76 +     plt.xlabel('Epochs')
+# 77 +     plt.ylabel('ACC')
+# 78 +     plt.legend(('Train', 'Valid'), loc='center right')
+# 79 +     plt.title(setting_path)
+# 80 +     plt.savefig(acc_path)
+# 81 +
+# 82 +
+# 83 + def log():
+# 84 +     print('saving logs to %s' % args.log_path)
+# 85 +     if not os.path.exists(args.log_path):
+# 86 +         os.makedirs(args.log_path)
+# 87 +     with open(os.path.join(args.log_path, setting_path), 'w+') as f:
+# 88 +         f.write("  training loss:                 " + str(train_loss_list[-1]) + "\n")
+# 89 +         f.write("  training accuracy:             " + str(train_acc_list[-1]) + "\n")
+# 90 +         f.write("  validation loss:               " + str(valid_loss_list[-1]) + "\n")
+# 91 +         f.write("  validation accuracy:           " + str(valid_acc_list[-1]) + "\n")
+# 92 +         f.write("  best validation accuracy:      " + str(best_val_acc) + "\n")
+# 93 +         f.write("  final test loss:               " + str(test_loss) + "\n")
+# 94 +         f.write("  final test accuracy:           " + str(test_acc) + "\n")
+# 191 +                 final_test_loss = test_loss
+# 192 +                 final_test_acc = test_acc
+# 209 +             train_loss_list.append(train_loss)
+# 210 +             train_acc_list.append(train_acc)
+# 211 +             valid_loss_list.append(val_loss)
+# 212 +             valid_acc_list.append(val_acc)
+# 235 +
+# 236 +     draw()
+# 237 +     log()
+# _codes\cnn\main.py -> ..\codes\cnn\main.py
+# 11 + from matplotlib import pyplot as plt
+# 34 + parser.add_argument('--figure_path', type=str, default=os.path.join(os.getcwd(), 'figures'),
+# 35 +     help='The path to save figures for cnn. Default: ./figures')
+# 36 + parser.add_argument('--log_path', type=str, default=os.path.join(os.getcwd(), 'logs'),
+# 37 +     help='The path to save logs for cnn. Default: ./logs')
+# 39 +
+# 40 + torch.cuda.manual_seed(42)
+# 41 +
+# 42 + setting_path = 'bsz_' + str(args.batch_size) + '_lr_' + str(args.learning_rate) + '_drop_' + str(args.drop_rate)
+# 43 + save_setting_path = '_bsz_' + str(args.batch_size) + '_lr_' + str(args.learning_rate)[2:] + '_drop_' + str(args.drop_rate)[2:]
+# 44 + train_loss_list = []  # loss every display
+# 45 + train_acc_list  = []  # accuracy every display
+# 46 + valid_loss_list = []  # loss every display
+# 47 + valid_acc_list =  []  # accuracy every display
+# 48 + final_test_loss = 1e18
+# 49 + final_test_acc = 0.0
+# 50 + best_val_acc = 0.0
+# 51 +
+# 52 +
+# 53 + def draw():
+# 54 +     print('saving figures to %s' % args.figure_path)
+# 55 +     if not os.path.exists(args.figure_path):
+# 56 +         os.makedirs(args.figure_path)
+# 57 +
+# 58 +     loss_path = os.path.join(args.figure_path, 'Loss' + save_setting_path)
+# 59 +     acc_path = os.path.join(args.figure_path, 'Acc' + save_setting_path)
+# 60 +
+# 61 +     epoch_list = list(range(len(train_loss_list)))
+# 62 +
+# 63 +     plt.plot(epoch_list, train_loss_list)
+# 64 +     plt.plot(epoch_list, valid_loss_list)
+# 65 +     plt.xlabel('Epochs')
+# 66 +     plt.ylabel('Loss')
+# 67 +     plt.legend(('Train', 'Valid'), loc='center right')
+# 68 +     plt.title(setting_path)
+# 69 +     print(loss_path)
+# 70 +     plt.savefig(loss_path)
+# 71 +
+# 72 +     plt.clf()
+# 73 +
+# 74 +     plt.plot(epoch_list, train_acc_list)
+# 75 +     plt.plot(epoch_list, valid_acc_list)
+# 76 +     plt.xlabel('Epochs')
+# 77 +     plt.ylabel('ACC')
+# 78 +     plt.legend(('Train', 'Valid'), loc='center right')
+# 79 +     plt.title(setting_path)
+# 80 +     plt.savefig(acc_path)
+# 81 +
+# 82 +
+# 83 + def log():
+# 84 +     print('saving logs to %s' % args.log_path)
+# 85 +     if not os.path.exists(args.log_path):
+# 86 +         os.makedirs(args.log_path)
+# 87 +     with open(os.path.join(args.log_path, setting_path), 'w+') as f:
+# 88 +         f.write("  training loss:                 " + str(train_loss_list[-1]) + "\n")
+# 89 +         f.write("  training accuracy:             " + str(train_acc_list[-1]) + "\n")
+# 90 +         f.write("  validation loss:               " + str(valid_loss_list[-1]) + "\n")
+# 91 +         f.write("  validation accuracy:           " + str(valid_acc_list[-1]) + "\n")
+# 92 +         f.write("  best validation accuracy:      " + str(best_val_acc) + "\n")
+# 93 +         f.write("  final test loss:               " + str(test_loss) + "\n")
+# 94 +         f.write("  final test accuracy:           " + str(test_acc) + "\n")
+# 191 +                 final_test_loss = test_loss
+# 192 +                 final_test_acc = test_acc
+# 130 -                 with open(os.path.join(args.train_dir, 'checkpoint_{}.pth.tar'.format(epoch)), 'wb') as fout:
+# 193 +                 # with open(os.path.join(args.train_dir, 'checkpoint_{}.pth.tar'.format(epoch)), 'wb') as fout:
+# 193 ?                ++
+# 131 -                     torch.save(cnn_model, fout)
+# 131 ?                  ^^^
+# 194 +                 # 	torch.save(cnn_model, fout)
+# 194 ?                 + ^
+# 132 -                 with open(os.path.join(args.train_dir, 'checkpoint_0.pth.tar'), 'wb') as fout:
+# 195 +                 # with open(os.path.join(args.train_dir, 'checkpoint_0.pth.tar'), 'wb') as fout:
+# 195 ?                ++
+# 133 -                     torch.save(cnn_model, fout)
+# 133 ?                  ^^^
+# 196 +                 # 	torch.save(cnn_model, fout)
+# 196 ?                 + ^
+# 209 +             train_loss_list.append(train_loss)
+# 210 +             train_acc_list.append(train_acc)
+# 211 +             valid_loss_list.append(val_loss)
+# 212 +             valid_acc_list.append(val_acc)
+# 236 +
+# 237 +     draw()
+# 238 +     log()
+

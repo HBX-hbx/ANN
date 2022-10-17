@@ -4,10 +4,10 @@ import torch
 from torch import nn
 from torch.nn import init
 from torch.nn.parameter import Parameter
-class BatchNorm1d(nn.Module):
+class BatchNorm2d(nn.Module):
 	# TODO START
 	def __init__(self, num_features):
-		super(BatchNorm1d, self).__init__()
+		super(BatchNorm2d, self).__init__()
 		self.num_features = num_features
 
 		# Parameters

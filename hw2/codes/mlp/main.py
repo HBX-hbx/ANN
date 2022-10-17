@@ -15,10 +15,10 @@ from load_data import load_cifar_2d
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--batch_size', type=int, default=500,
-	help='Batch size for mini-batch training and evaluating. Default: 500')
-parser.add_argument('--num_epochs', type=int, default=50,
-	help='Number of training epoch. Default: 50')
+parser.add_argument('--batch_size', type=int, default=100,
+	help='Batch size for mini-batch training and evaluating. Default: 100')
+parser.add_argument('--num_epochs', type=int, default=20,
+	help='Number of training epoch. Default: 20')
 parser.add_argument('--learning_rate', type=float, default=1e-3,
 	help='Learning rate during optimization. Default: 1e-3')
 parser.add_argument('--drop_rate', type=float, default=0.5,

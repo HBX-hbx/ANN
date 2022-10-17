@@ -47,11 +47,14 @@ class Dropout(nn.Module):
 	def forward(self, input):
 		# input: [batch_size, num_feature_map, height, width]
 		if self.training: # training
-			# mask = torch.ones(input.shape[:2])*(1 - self.p)
-			# return input * torch.bernoulli(mask.cuda()).unsqueeze(-1).unsqueeze(-1) / (1. - self.p)
-			mask = torch.ones(input.shape).cuda()
+			'''Dropout2d'''
+			mask = torch.ones(input.shape[:2]).cuda()
 			mask *= (1 - self.p)
-			return input * torch.bernoulli(mask) / (1. - self.p)
+			return input * torch.bernoulli(mask).unsqueeze(-1).unsqueeze(-1) / (1. - self.p)
+			'''Dropout1d'''
+			# mask = torch.ones(input.shape).cuda()
+			# mask *= (1 - self.p)
+			# return input * torch.bernoulli(mask) / (1. - self.p)
 		# eval
 		return input
 	# TODO END
@@ -84,7 +87,7 @@ class Model(nn.Module):
 		# TODO END2
 		self.loss = nn.CrossEntropyLoss()
 
-	def forward(self, x, y=None):	
+	def forward(self, x, y=None):
 		# TODO START
 		# the 10-class prediction output is named as "logits"
 		logits = self.network(x)

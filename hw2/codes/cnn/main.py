@@ -17,12 +17,12 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--batch_size', type=int, default=100,
 	help='Batch size for mini-batch training and evaluating. Default: 100')
-parser.add_argument('--num_epochs', type=int, default=50,
-	help='Number of training epoch. Default: 50')
+parser.add_argument('--num_epochs', type=int, default=20,
+	help='Number of training epoch. Default: 20')
 parser.add_argument('--learning_rate', type=float, default=1e-3,
 	help='Learning rate during optimization. Default: 1e-3')
-parser.add_argument('--drop_rate', type=float, default=0.0,
-	help='Drop rate of the Dropout Layer. Default: 0.0')
+parser.add_argument('--drop_rate', type=float, default=0.5,
+	help='Drop rate of the Dropout Layer. Default: 0.5')
 parser.add_argument('--is_train', type=bool, default=True,
 	help='True to train and False to inference. Default: True')
 parser.add_argument('--data_dir', type=str, default='../cifar-10_data',
@@ -32,9 +32,9 @@ parser.add_argument('--train_dir', type=str, default='./train',
 parser.add_argument('--inference_version', type=int, default=0,
 	help='The version for inference. Set 0 to use latest checkpoint. Default: 0')
 parser.add_argument('--figure_path', type=str, default=os.path.join(os.getcwd(), 'figures'),
-	help='The path to save figures for mlp. Default: ./figures')
+	help='The path to save figures for cnn. Default: ./figures')
 parser.add_argument('--log_path', type=str, default=os.path.join(os.getcwd(), 'logs'),
-	help='The path to save logs for mlp. Default: ./logs')
+	help='The path to save logs for cnn. Default: ./logs')
 args = parser.parse_args()
 
 torch.cuda.manual_seed(42)
@@ -166,34 +166,34 @@ if __name__ == '__main__':
 		X_train, X_test, y_train, y_test = load_cifar_4d(args.data_dir)
 		X_val, y_val = X_train[40000:], y_train[40000:]
 		X_train, y_train = X_train[:40000], y_train[:40000]
-		mlp_model = Model(drop_rate=args.drop_rate)
-		mlp_model.to(device)
-		print(mlp_model)
-		optimizer = optim.Adam(mlp_model.parameters(), lr=args.learning_rate)
+		cnn_model = Model(drop_rate=args.drop_rate)
+		cnn_model.to(device)
+		print(cnn_model)
+		optimizer = optim.Adam(cnn_model.parameters(), lr=args.learning_rate)
 
 		# model_path = os.path.join(args.train_dir, 'checkpoint_%d.pth.tar' % args.inference_version)
 		# if os.path.exists(model_path):
-		# 	mlp_model = torch.load(model_path)
+		# 	cnn_model = torch.load(model_path)
 
 		pre_losses = [1e18] * 3
 		best_val_acc = 0.0
 		for epoch in range(1, args.num_epochs+1):
 			start_time = time.time()
-			train_acc, train_loss = train_epoch(mlp_model, X_train, y_train, optimizer)
+			train_acc, train_loss = train_epoch(cnn_model, X_train, y_train, optimizer)
 			X_train, y_train = shuffle(X_train, y_train, 1)
 
-			val_acc, val_loss = valid_epoch(mlp_model, X_val, y_val)
+			val_acc, val_loss = valid_epoch(cnn_model, X_val, y_val)
 
 			if val_acc >= best_val_acc:
 				best_val_acc = val_acc
 				best_epoch = epoch
-				test_acc, test_loss = valid_epoch(mlp_model, X_test, y_test)
+				test_acc, test_loss = valid_epoch(cnn_model, X_test, y_test)
 				final_test_loss = test_loss
 				final_test_acc = test_acc
 				# with open(os.path.join(args.train_dir, 'checkpoint_{}.pth.tar'.format(epoch)), 'wb') as fout:
-				# 	torch.save(mlp_model, fout)
+				# 	torch.save(cnn_model, fout)
 				# with open(os.path.join(args.train_dir, 'checkpoint_0.pth.tar'), 'wb') as fout:
-				# 	torch.save(mlp_model, fout)
+				# 	torch.save(cnn_model, fout)
 
 			epoch_time = time.time() - start_time
 			print("Epoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
@@ -217,18 +217,19 @@ if __name__ == '__main__':
 			pre_losses = pre_losses[1:] + [train_loss]
 
 	else:
-		mlp_model = Model()
-		mlp_model.to(device)
+		print("begin testing")
+		cnn_model = Model()
+		cnn_model.to(device)
 		model_path = os.path.join(args.train_dir, 'checkpoint_%d.pth.tar' % args.inference_version)
 		if os.path.exists(model_path):
-			mlp_model = torch.load(model_path)
+			cnn_model = torch.load(model_path)
 
 		X_train, X_test, y_train, y_test = load_cifar_4d(args.data_dir)
 
 		count = 0
 		for i in range(len(X_test)):
-			test_image = X_test[i].reshape((1, 3 * 32 * 32))
-			result = inference(mlp_model, test_image)[0]
+			test_image = X_test[i].reshape((1, 3, 32, 32))
+			result = inference(cnn_model, test_image)[0]
 			if result == y_test[i]:
 				count += 1
 		print("test accuracy: {}".format(float(count) / len(X_test)))

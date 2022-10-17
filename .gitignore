@@ -1,7 +1,8 @@
 hw1/codes/data/*
-hw1/codes/__pycache__/*
+hw1/codes/__pycache__
 hw1/codes/*.txt
-hw1/qcReport.pdf
 hw2/codes/cifar-10_data
 hw2/*/*/__pycache__
-hw2/qcReport.pdf
+hw3/codes/__pycache__
+hw3/codes/pretrain
+*/qcReport.pdf

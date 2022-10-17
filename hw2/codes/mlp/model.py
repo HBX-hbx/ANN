@@ -4,7 +4,6 @@ import torch
 from torch import nn
 from torch.nn import init
 from torch.nn.parameter import Parameter
-
 class BatchNorm1d(nn.Module):
 	# TODO START
 	def __init__(self, num_features, eps=1e-5, momentum=0.1):
