@@ -71,11 +71,14 @@ def fast_evaluate(model, data, batch_size, PAD_ID, device):
             tgt_ids = torch.tensor(data[st:ed]).to(device)
             outputs = model(input_ids)
             lm_logits = outputs["logits"]
+            
+            lm_logits = lm_logits[..., :-1, :].contiguous()
+            tgt_ids = tgt_ids[..., 1:].contiguous()
 
             loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.contiguous().view(-1))
             loss = loss.reshape(tgt_ids.shape)[tgt_ids != PAD_ID].mean()
             # TODO END
-            all_loss += loss.cpu().numpy().tolist()
+            all_loss += [loss.cpu().numpy().tolist()]
     loss = np.mean(all_loss)
     ppl = np.exp(loss)
     model.train()
