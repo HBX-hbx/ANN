@@ -5,4 +5,5 @@ hw2/codes/cifar-10_data
 hw2/*/*/__pycache__
 hw3/codes/__pycache__
 hw3/codes/pretrain
+hw3/codes/train/*
 */qcReport.pdf

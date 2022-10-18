@@ -297,9 +297,17 @@ class TfmrLMHeadModel(nn.Module):
             # TODO START
             # Implement the loss function. Note that you should shift logits so that tokens < n predict n
             s_logits = lm_logits[..., :-1, :].contiguous()
+            
+            tmp_labels = labels.clone()
+            tmp_labels[:, 0] += 1
+            
+            loss_mask = (tmp_labels != PAD_ID)
+            
             s_labels = labels[..., 1:].contiguous()
+            loss_mask = loss_mask[..., :-1]
+
             loss = ce_loss_fct(s_logits.view(-1, s_logits.shape[-1]), s_labels.view(-1))
-            loss = loss.reshape(s_labels.shape)[s_labels != PAD_ID].mean()
+            loss = loss.reshape(s_labels.shape)[loss_mask].mean()
             # TODO END
 
         return {

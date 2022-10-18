@@ -73,10 +73,15 @@ def fast_evaluate(model, data, batch_size, PAD_ID, device):
             lm_logits = outputs["logits"]
             
             lm_logits = lm_logits[..., :-1, :].contiguous()
+            
+            tgt_ids[:, 0] += 1
+            loss_mask = (tgt_ids != PAD_ID)
+            
             tgt_ids = tgt_ids[..., 1:].contiguous()
-
+            loss_mask = loss_mask[..., :-1]
             loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.contiguous().view(-1))
-            loss = loss.reshape(tgt_ids.shape)[tgt_ids != PAD_ID].mean()
+            loss = loss.reshape(tgt_ids.shape)[loss_mask].mean()
+
             # TODO END
             all_loss += [loss.cpu().numpy().tolist()]
     loss = np.mean(all_loss)
