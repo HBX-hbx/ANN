@@ -80,6 +80,7 @@ def fast_evaluate(model, data, batch_size, PAD_ID, device):
             all_loss += loss.cpu().numpy().tolist()
     loss = np.mean(all_loss)
     ppl = np.exp(loss)
+    model.train()
     return loss, ppl
 
 def evaluate(gen_ids, truth_ids, cpu_count=20):

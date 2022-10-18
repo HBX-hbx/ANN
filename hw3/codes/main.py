@@ -41,7 +41,7 @@ parser.add_argument('--data_dir', type=str, default='./data',
     help='Data directory. Default: ../data')
 parser.add_argument('--train_dir', type=str, default='./train',
     help='Training directory for saving model. Default: ./train')
-parser.add_argument('--pretrain_dir', type=str, default='None',
+parser.add_argument('--pretrain_dir', type=str, default=None,
     help='Pre-Training directory for loading pretrained model. Default: None')
 parser.add_argument('--maxlen', type=int, default=35,
     help='Maximum length for training/inference. Default: 35')    
@@ -68,18 +68,17 @@ def fast_evaluate(model, data, batch_size, PAD_ID, device):
 
             # TODO START
             # Implement the Perplexity metric. Basically it should be the same as the loss function used for training the model.
-            tgt_ids = 
-            input_ids = 
+            tgt_ids = torch.tensor(data[st:ed]).to(device)
             outputs = model(input_ids)
             lm_logits = outputs["logits"]
 
             loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.contiguous().view(-1))
-            loss_mask = 
-            loss = 
+            loss = loss.reshape(tgt_ids.shape)[tgt_ids != PAD_ID].mean()
             # TODO END
             all_loss += loss.cpu().numpy().tolist()
     loss = np.mean(all_loss)
     ppl = np.exp(loss)
+    model.train()
     return loss, ppl
 
 def evaluate(gen_ids, truth_ids, cpu_count=20):
@@ -157,7 +156,7 @@ def get_init_weights_func(config):
 if __name__ == '__main__':
 
     print(args)
-    device = "cuda:6" #torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if not os.path.exists(args.train_dir):
         os.mkdir(args.train_dir)
     tokenizer = get_tokenizer(args.tokenizer_dir)
