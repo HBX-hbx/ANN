@@ -61,7 +61,7 @@ class TfmrAttention(nn.Module):
 
     def _attn(self, query, key, value):
         # TODO START
-        # implement the multi-head mask self-attention mechanism
+        # implement the multi-head mask self-attnetion mechanism
         # q, k, v: (bsz, num_heads, seq_len, head_features)
         # attn_w: (bsz, num_heads, seq_len, seq_len)
         seq_len = query.shape[-2]
@@ -226,8 +226,14 @@ class TfmrModel(nn.Module):
         inputs_embeds = self.wte(input_ids)
         # TODO START
         # Implement the positional embeddings. Note that the length of cache hidden states used during inference
-        position_ids = torch.arange(0, input_shape[-1], dtype=torch.long, device=device)
-        position_ids = position_ids.view(-1, input_shape[-1])
+        if past_key_values is None:
+            past_length = 0
+            past_key_values = tuple([None] * len(self.h))
+        else:
+            past_length = past_key_values[0][0].size(-2)
+
+        position_ids = torch.arange(past_length, input_shape[-1] + past_length, dtype=torch.long, device=device)
+        position_ids = position_ids.unsqueeze(0).view(-1, input_shape[-1])
         position_embeds = self.wpe(position_ids)
         # TODO END
         hidden_states = inputs_embeds + position_embeds
@@ -240,11 +246,11 @@ class TfmrModel(nn.Module):
         all_self_attentions = ()
         all_cross_attentions = ()
         all_hidden_states = ()
-        for block in self.h:
+        for i, (block, layer_past) in enumerate(zip(self.h, past_key_values)):
             all_hidden_states = all_hidden_states + (hidden_states,)
             outputs = block(
                 hidden_states,
-                layer_past=None,
+                layer_past=layer_past,
                 use_cache=use_cache,
             )
 
@@ -296,18 +302,16 @@ class TfmrLMHeadModel(nn.Module):
             ce_loss_fct = CrossEntropyLoss(reduction="none")
             # TODO START
             # Implement the loss function. Note that you should shift logits so that tokens < n predict n
-            s_logits = lm_logits[..., :-1, :].contiguous()
+            tgt_ids = labels[:, 1:].contiguous()
+
+            lm_logits = lm_logits[..., :-1, :].contiguous()
+            loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.view(-1))
             
             tmp_labels = labels.clone()
-            tmp_labels[:, 0] += 1
+            tmp_labels.T[0] += 1
             
-            loss_mask = (tmp_labels != PAD_ID)
-            
-            s_labels = labels[..., 1:].contiguous()
-            loss_mask = loss_mask[..., :-1]
-
-            loss = ce_loss_fct(s_logits.view(-1, s_logits.shape[-1]), s_labels.view(-1))
-            loss = loss.reshape(s_labels.shape)[loss_mask].mean()
+            loss_mask = (tmp_labels != PAD_ID)[...,:-1].contiguous().view(-1).float()
+            loss = (loss_mask * loss).sum() / loss_mask.sum()
             # TODO END
 
         return {
@@ -320,7 +324,7 @@ class TfmrLMHeadModel(nn.Module):
          }
         
 
-    def inference(self, device, PAD_ID, batch_size, maxlen, decode_strategy, temperature, top_p=1.0):
+    def inference(self, device, PAD_ID, batch_size, maxlen, decode_strategy, temperature, top_p=1.0, top_k=50267):
         self.eval()
         allgen = []
         with torch.no_grad():
@@ -336,7 +340,12 @@ class TfmrLMHeadModel(nn.Module):
 
                     if decode_strategy == "top-p":
                         # TODO START
-                        # implement top-p samplings
+                        # implement top-p sampling
+                        pass
+                        # TODO END
+                    elif decode_strategy == "top-k":
+                        # TODO START
+                        # implement top-k sampling
                         pass
                         # TODO END
                     prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)

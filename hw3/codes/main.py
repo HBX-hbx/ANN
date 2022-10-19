@@ -39,18 +39,20 @@ parser.add_argument('--test', type=str, default=None,
     help='Evaluate the model with the specified name. Default: None')
 parser.add_argument('--data_dir', type=str, default='./data',
     help='Data directory. Default: ../data')
-parser.add_argument('--train_dir', type=str, default='./train',
+parser.add_argument('--train_dir', type=str, default='./train_test',
     help='Training directory for saving model. Default: ./train')
-parser.add_argument('--pretrain_dir', type=str, default=None,
+parser.add_argument('--pretrain_dir', type=str, default='None',
     help='Pre-Training directory for loading pretrained model. Default: None')
 parser.add_argument('--maxlen', type=int, default=35,
     help='Maximum length for training/inference. Default: 35')    
-parser.add_argument('--decode_strategy', type=str, choices=["random", "top-p"], default="random",
-    help='The strategy for decoding. Can be "random" or "top-p". Default: random')
+parser.add_argument('--decode_strategy', type=str, choices=["random", "top-p", "top-k"], default="random",
+    help='The strategy for decoding. Can be "random", "top-p" or "top-k". Default: random')
 parser.add_argument('--temperature', type=float, default=1,
     help='The temperature for decoding. Default: 1')
 parser.add_argument('--top_p', type=float, default=1.0,
     help='The p for top-p sampling. Default: 1.0')    
+parser.add_argument('--top_k', type=int, default=40,
+    help='The k for top-k sampling. Default: 40')        
 args = parser.parse_args()
 
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
@@ -68,20 +70,14 @@ def fast_evaluate(model, data, batch_size, PAD_ID, device):
 
             # TODO START
             # Implement the Perplexity metric. Basically it should be the same as the loss function used for training the model.
-            tgt_ids = torch.tensor(data[st:ed]).to(device)
+            tgt_ids = input_ids[:, 1:].contiguous()
             outputs = model(input_ids)
             lm_logits = outputs["logits"]
-            
             lm_logits = lm_logits[..., :-1, :].contiguous()
-            
-            tgt_ids[:, 0] += 1
-            loss_mask = (tgt_ids != PAD_ID)
-            
-            tgt_ids = tgt_ids[..., 1:].contiguous()
-            loss_mask = loss_mask[..., :-1]
-            loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.contiguous().view(-1))
-            loss = loss.reshape(tgt_ids.shape)[loss_mask].mean()
-
+            loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.view(-1))
+            input_ids.T[0] += 1
+            loss_mask = (input_ids != PAD_ID)[...,:-1].contiguous().view(-1).float()
+            loss = (loss_mask * loss).sum() / loss_mask.sum()
             # TODO END
             all_loss += [loss.cpu().numpy().tolist()]
     loss = np.mean(all_loss)
@@ -164,7 +160,7 @@ def get_init_weights_func(config):
 if __name__ == '__main__':
 
     print(args)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = "cuda:6" #torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if not os.path.exists(args.train_dir):
         os.mkdir(args.train_dir)
     tokenizer = get_tokenizer(args.tokenizer_dir)
@@ -251,7 +247,7 @@ if __name__ == '__main__':
         test_loss, test_ppl = fast_evaluate(model=model, data=data["test"], batch_size=args.batch_size, PAD_ID=PAD_ID, device=device)
         print("        test_set, perplexity %.2f" % (test_ppl))
         result = model.inference(device=device, PAD_ID=PAD_ID, 
-            batch_size=args.batch_size, maxlen=args.maxlen, decode_strategy=args.decode_strategy, temperature=args.temperature, top_p=args.top_p)
+            batch_size=args.batch_size, maxlen=args.maxlen, decode_strategy=args.decode_strategy, temperature=args.temperature, top_p=args.top_p, top_k=args.top_k)
         with open('output_%s.txt'%args.decode_strategy, 'w') as fout:
             for k, output in enumerate(result):
                 out = tokenizer.decode(output)

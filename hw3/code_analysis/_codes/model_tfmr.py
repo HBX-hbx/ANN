@@ -285,7 +285,7 @@ class TfmrLMHeadModel(nn.Module):
          }
         
 
-    def inference(self, device, PAD_ID, batch_size, maxlen, decode_strategy, temperature, top_p=1.0):
+    def inference(self, device, PAD_ID, batch_size, maxlen, decode_strategy, temperature, top_p=1.0, top_k=50267):
         self.eval()
         allgen = []
         with torch.no_grad():
@@ -301,7 +301,11 @@ class TfmrLMHeadModel(nn.Module):
 
                     if decode_strategy == "top-p":
                         # TODO START
-                        # implement top-p samplings
+                        # implement top-p sampling
+                        # TODO END
+                    elif decode_strategy == "top-k":
+                        # TODO START
+                        # implement top-k sampling
                         # TODO END
                     prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
                     now_token = torch.multinomial(prob, 1)[:, :1] # shape: (batch_size)

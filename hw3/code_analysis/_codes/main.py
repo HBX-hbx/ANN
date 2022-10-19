@@ -45,12 +45,14 @@ parser.add_argument('--pretrain_dir', type=str, default='None',
     help='Pre-Training directory for loading pretrained model. Default: None')
 parser.add_argument('--maxlen', type=int, default=35,
     help='Maximum length for training/inference. Default: 35')    
-parser.add_argument('--decode_strategy', type=str, choices=["random", "top-p"], default="random",
-    help='The strategy for decoding. Can be "random" or "top-p". Default: random')
+parser.add_argument('--decode_strategy', type=str, choices=["random", "top-p", "top-k"], default="random",
+    help='The strategy for decoding. Can be "random", "top-p" or "top-k". Default: random')
 parser.add_argument('--temperature', type=float, default=1,
     help='The temperature for decoding. Default: 1')
 parser.add_argument('--top_p', type=float, default=1.0,
     help='The p for top-p sampling. Default: 1.0')    
+parser.add_argument('--top_k', type=int, default=40,
+    help='The k for top-k sampling. Default: 40')        
 args = parser.parse_args()
 
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
@@ -245,7 +247,7 @@ if __name__ == '__main__':
         test_loss, test_ppl = fast_evaluate(model=model, data=data["test"], batch_size=args.batch_size, PAD_ID=PAD_ID, device=device)
         print("        test_set, perplexity %.2f" % (test_ppl))
         result = model.inference(device=device, PAD_ID=PAD_ID, 
-            batch_size=args.batch_size, maxlen=args.maxlen, decode_strategy=args.decode_strategy, temperature=args.temperature, top_p=args.top_p)
+            batch_size=args.batch_size, maxlen=args.maxlen, decode_strategy=args.decode_strategy, temperature=args.temperature, top_p=args.top_p, top_k=args.top_k)
         with open('output_%s.txt'%args.decode_strategy, 'w') as fout:
             for k, output in enumerate(result):
                 out = tokenizer.decode(output)
