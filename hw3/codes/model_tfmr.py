@@ -302,16 +302,19 @@ class TfmrLMHeadModel(nn.Module):
             ce_loss_fct = CrossEntropyLoss(reduction="none")
             # TODO START
             # Implement the loss function. Note that you should shift logits so that tokens < n predict n
-            tgt_ids = labels[:, 1:].contiguous()
-
-            lm_logits = lm_logits[..., :-1, :].contiguous()
-            loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.view(-1))
+            
+            s_logits = lm_logits[..., :-1, :].contiguous()
             
             tmp_labels = labels.clone()
-            tmp_labels.T[0] += 1
+            tmp_labels[:, 0] += 1
             
-            loss_mask = (tmp_labels != PAD_ID)[...,:-1].contiguous().view(-1).float()
-            loss = (loss_mask * loss).sum() / loss_mask.sum()
+            loss_mask = (tmp_labels != PAD_ID)
+            
+            s_labels = labels[..., 1:].contiguous()
+            loss_mask = loss_mask[..., :-1]
+
+            loss = ce_loss_fct(s_logits.view(-1, s_logits.shape[-1]), s_labels.view(-1))
+            loss = loss.reshape(s_labels.shape)[loss_mask].mean()
             # TODO END
 
         return {
@@ -341,12 +344,32 @@ class TfmrLMHeadModel(nn.Module):
                     if decode_strategy == "top-p":
                         # TODO START
                         # implement top-p sampling
-                        pass
+                        bsz, n_vocabs = logits.shape
+                        tmp_prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
+                        sort_prob, sort_idx = tmp_prob.sort(1, True)
+                        cum_prob = torch.cumsum(sort_prob, dim=-1)
+                        mask = (cum_prob >= top_p)
+                        sort_idx = sort_idx + torch.arange(bsz, device=device, dtype=torch.long).unsqueeze(-1) * n_vocabs
+                        
+                        logits = logits.view(-1)
+                        logits[sort_idx[mask]] = -float('inf')
+                        logits = logits.reshape(bsz, n_vocabs)
                         # TODO END
                     elif decode_strategy == "top-k":
                         # TODO START
                         # implement top-k sampling
-                        pass
+                        bsz, n_vocabs = logits.shape
+                        tmp_prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
+                        sort_prob, sort_idx = tmp_prob.sort(1, True)
+                        mask = torch.zeros(logits.shape, device=device, dtype=torch.long)
+                        mask[..., top_k:] = 1
+                        mask = mask.to(torch.bool)
+                        
+                        sort_idx = sort_idx + torch.arange(bsz, device=device, dtype=torch.long).unsqueeze(-1) * n_vocabs
+                        
+                        logits = logits.view(-1)
+                        logits[sort_idx[mask]] = -float('inf')
+                        logits = logits.reshape(bsz, n_vocabs)
                         # TODO END
                     prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
                     now_token = torch.multinomial(prob, 1)[:, :1] # shape: (batch_size)

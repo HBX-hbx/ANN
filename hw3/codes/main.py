@@ -39,13 +39,13 @@ parser.add_argument('--test', type=str, default=None,
     help='Evaluate the model with the specified name. Default: None')
 parser.add_argument('--data_dir', type=str, default='./data',
     help='Data directory. Default: ../data')
-parser.add_argument('--train_dir', type=str, default='./train_test',
+parser.add_argument('--train_dir', type=str, default='./train',
     help='Training directory for saving model. Default: ./train')
-parser.add_argument('--pretrain_dir', type=str, default='None',
+parser.add_argument('--pretrain_dir', type=str, default=None,
     help='Pre-Training directory for loading pretrained model. Default: None')
 parser.add_argument('--maxlen', type=int, default=35,
     help='Maximum length for training/inference. Default: 35')    
-parser.add_argument('--decode_strategy', type=str, choices=["random", "top_p", "top_k"], default="random",
+parser.add_argument('--decode_strategy', type=str, choices=["random", "top-p", "top-k"], default="random",
     help='The strategy for decoding. Can be "random", "top-p" or "top-k". Default: random')
 parser.add_argument('--temperature', type=float, default=1,
     help='The temperature for decoding. Default: 1')
@@ -54,6 +54,8 @@ parser.add_argument('--top_p', type=float, default=1.0,
 parser.add_argument('--top_k', type=int, default=40,
     help='The k for top-k sampling. Default: 40')        
 args = parser.parse_args()
+
+setting_path = args.decode_strategy + '_temp_' + str(args.temperature)[2:] + '_modelname_' + str(args.test)
 
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 def _sentence_bleu(ele):
@@ -70,14 +72,21 @@ def fast_evaluate(model, data, batch_size, PAD_ID, device):
 
             # TODO START
             # Implement the Perplexity metric. Basically it should be the same as the loss function used for training the model.
-            tgt_ids = input_ids[:, 1:].contiguous()
+            
+            tgt_ids = torch.tensor(data[st:ed]).to(device)
             outputs = model(input_ids)
             lm_logits = outputs["logits"]
+            
             lm_logits = lm_logits[..., :-1, :].contiguous()
-            loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.view(-1))
-            input_ids.T[0] += 1
-            loss_mask = (input_ids != PAD_ID)[...,:-1].contiguous().view(-1).float()
-            loss = (loss_mask * loss).sum() / loss_mask.sum()
+            
+            tgt_ids[:, 0] += 1
+            loss_mask = (tgt_ids != PAD_ID)
+            
+            tgt_ids = tgt_ids[..., 1:].contiguous()
+            loss_mask = loss_mask[..., :-1]
+            loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), tgt_ids.contiguous().view(-1))
+            loss = loss.reshape(tgt_ids.shape)[loss_mask].mean()
+            
             # TODO END
             all_loss += [loss.cpu().numpy().tolist()]
     loss = np.mean(all_loss)
@@ -160,7 +169,7 @@ def get_init_weights_func(config):
 if __name__ == '__main__':
 
     print(args)
-    device = "cuda:6" #torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not os.path.exists(args.train_dir):
         os.mkdir(args.train_dir)
     tokenizer = get_tokenizer(args.tokenizer_dir)
@@ -224,16 +233,16 @@ if __name__ == '__main__':
                 with open(os.path.join(args.train_dir, 'checkpoint_%s.pth.tar' % args.name), 'wb') as fout:
                     torch.save(model, fout)
 
-                epoch_time = time.time() - start_time
-                print("Epoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
-                print("  training loss:                 " + str(train_loss))
-                print("  validation loss:               " + str(val_loss))
-                print("  validation perplexity:         " + str(val_ppl))
-                print("  best epoch:                    " + str(best_epoch))
-                print("  best validation perplexity:    " + str(best_val_ppl))
-            else:
-                print("Validation loss: %.3f, becomes larger. Stop training."%val_ppl)
-                break
+            epoch_time = time.time() - start_time
+            print("Epoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
+            print("  training loss:                 " + str(train_loss))
+            print("  validation loss:               " + str(val_loss))
+            print("  validation perplexity:         " + str(val_ppl))
+            print("  best epoch:                    " + str(best_epoch))
+            print("  best validation perplexity:    " + str(best_val_ppl))
+            # else:
+            #     print("Validation loss: %.3f, becomes larger. Stop training."%val_ppl)
+            #     break
 
     else:
         model_path = os.path.join(args.train_dir, 'checkpoint_%s.pth.tar' % args.test)
@@ -248,11 +257,14 @@ if __name__ == '__main__':
         print("        test_set, perplexity %.2f" % (test_ppl))
         result = model.inference(device=device, PAD_ID=PAD_ID, 
             batch_size=args.batch_size, maxlen=args.maxlen, decode_strategy=args.decode_strategy, temperature=args.temperature, top_p=args.top_p, top_k=args.top_k)
-        with open('output_%s.txt'%args.decode_strategy, 'w') as fout:
+        eval_result = evaluate(gen_ids=result, truth_ids=data_remove_pad["test"])
+        with open('output_%s.txt'%setting_path, 'w') as fout:
+            fout.write("perplexity %.2f\nforward BLEU-4 %.3f\nbackward BLEU-4 %.3f\nharmonic BLEU-4 %.3f\n" % (test_ppl, eval_result["fw-bleu-4"], eval_result["bw-bleu-4"], eval_result["fw-bw-bleu-4"]))
+            fout.write('============== generating sentence ===================\n')
             for k, output in enumerate(result):
                 out = tokenizer.decode(output)
                 print(k, out)
                 fout.write(out + "\n")
-        eval_result = evaluate(gen_ids=result, truth_ids=data_remove_pad["test"])
+        
         print("        test_set, forward BLEU-4 %.3f, backward BLEU-4 %.3f, harmonic BLEU-4 %.3f" % (eval_result["fw-bleu-4"], eval_result["bw-bleu-4"], eval_result["fw-bw-bleu-4"]))
-        print("        test_set, write inference results to output_%s.txt"%args.decode_strategy)
+        print("        test_set, write inference results to output_%s.txt"%setting_path)
