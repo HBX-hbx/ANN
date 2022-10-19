@@ -45,7 +45,7 @@ parser.add_argument('--pretrain_dir', type=str, default='None',
     help='Pre-Training directory for loading pretrained model. Default: None')
 parser.add_argument('--maxlen', type=int, default=35,
     help='Maximum length for training/inference. Default: 35')    
-parser.add_argument('--decode_strategy', type=str, choices=["random", "top-p", "top-k"], default="random",
+parser.add_argument('--decode_strategy', type=str, choices=["random", "top_p", "top_k"], default="random",
     help='The strategy for decoding. Can be "random", "top-p" or "top-k". Default: random')
 parser.add_argument('--temperature', type=float, default=1,
     help='The temperature for decoding. Default: 1')
