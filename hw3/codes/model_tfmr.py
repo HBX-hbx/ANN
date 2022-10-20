@@ -348,12 +348,15 @@ class TfmrLMHeadModel(nn.Module):
                         tmp_prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
                         sort_prob, sort_idx = tmp_prob.sort(1, True)
                         cum_prob = torch.cumsum(sort_prob, dim=-1)
-                        mask = (cum_prob >= top_p)
+                        mask = (cum_prob > top_p)
+                        mask[..., 1:] = mask[..., :-1].clone()
+                        mask[..., 0] = 0
                         sort_idx = sort_idx + torch.arange(bsz, device=device, dtype=torch.long).unsqueeze(-1) * n_vocabs
                         
                         logits = logits.view(-1)
                         logits[sort_idx[mask]] = -float('inf')
                         logits = logits.reshape(bsz, n_vocabs)
+                        
                         # TODO END
                     elif decode_strategy == "top-k":
                         # TODO START

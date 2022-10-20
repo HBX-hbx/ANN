@@ -6,4 +6,7 @@ hw2/*/*/__pycache__
 hw3/codes/__pycache__
 hw3/codes/pretrain
 hw3/codes/train/*
+hw3/codes/*.txt
+hw3/codes/logs
+hw3/codes/ds_run_results
 */qcReport.pdf

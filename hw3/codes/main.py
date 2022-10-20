@@ -18,7 +18,9 @@ torch.manual_seed(1229)
 torch.cuda.manual_seed_all(1229)
 np.random.seed(1229)
 from configuration import ModelConfig
+from torch.utils.tensorboard import SummaryWriter   
 
+writer = SummaryWriter('./logs')
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--name', type=str, default="run",
@@ -52,10 +54,13 @@ parser.add_argument('--temperature', type=float, default=1,
 parser.add_argument('--top_p', type=float, default=1.0,
     help='The p for top-p sampling. Default: 1.0')    
 parser.add_argument('--top_k', type=int, default=40,
-    help='The k for top-k sampling. Default: 40')        
+    help='The k for top-k sampling. Default: 40')      
+parser.add_argument('--id', type=int, default=1,
+    help='The id of the experiment for different 3 layers. Default: 1')    
 args = parser.parse_args()
 
 setting_path = args.decode_strategy + '_temp_' + str(args.temperature)[2:] + '_modelname_' + str(args.test)
+setting_path += '_expid_' + str(args.id)
 
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 def _sentence_bleu(ele):
@@ -166,6 +171,40 @@ def get_init_weights_func(config):
             module.weight.data.fill_(1.0)
     return init_weights
 
+def load_model(model_path):
+    # test different 3 layers
+    with open(args.model_config) as fin:
+        model_config = json.load(fin)
+        config = ModelConfig(**model_config)
+    model = TfmrLMHeadModel(config)
+    
+    model_12_dict = torch.load(model_path).state_dict()
+    target_prefix = [0, 1, 2]
+    target_prefix = ['transformer.h.' + str(i) + '.' for i in target_prefix]
+    if args.id == 1:
+        disallowed_prefix = [3, 4, 5, 6, 7, 8, 9, 10, 11]
+        allowed_prefix = [0, 1, 2]
+    elif args.id == 2:
+        disallowed_prefix = [1, 2, 3, 4, 6, 7, 8, 9, 10]
+        allowed_prefix = [0, 5, 11]
+    elif args.id == 3:
+        disallowed_prefix = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        allowed_prefix = [9, 10, 11]
+    else:
+        raise ValueError('Unknown exp id %s' % str(args.id))
+    allowed_prefix = ['transformer.h.' + str(i) + '.' for i in allowed_prefix]
+    disallowed_prefix = tuple(['transformer.h.' + str(i) + '.' for i in disallowed_prefix])
+    model_3_dict = dict(filter(lambda x: not x[0].startswith(disallowed_prefix), model_12_dict.items()))
+    
+    keys = list(model_3_dict.keys())
+    for _, (a, t) in enumerate(zip(allowed_prefix, target_prefix)):
+        for key in keys:
+            if key.startswith(a):
+                model_3_dict[key.replace(a, t)] = model_3_dict.pop(key)
+    
+    model.load_state_dict(model_3_dict)
+    return model
+
 if __name__ == '__main__':
 
     print(args)
@@ -191,7 +230,8 @@ if __name__ == '__main__':
             model_path = os.path.join(args.pretrain_dir, 'pretrained_ckpt.tar')
             if os.path.exists(model_path):
                 print("Loading model from %s" % model_path)
-                model = torch.load(model_path)
+                # model = torch.load(model_path)
+                model = load_model(model_path=model_path)
             else:
                 raise RuntimeError("No such checkpoint: %s"%model_path)
         model.to(device)
@@ -240,9 +280,18 @@ if __name__ == '__main__':
             print("  validation perplexity:         " + str(val_ppl))
             print("  best epoch:                    " + str(best_epoch))
             print("  best validation perplexity:    " + str(best_val_ppl))
+            writer.add_scalars('Loss', {'train': train_loss, 'val': val_loss}, epoch)
             # else:
             #     print("Validation loss: %.3f, becomes larger. Stop training."%val_ppl)
             #     break
+            if epoch == args.num_epochs:
+                with open('train_val_%s.txt'%args.name, 'w') as fout:
+                    fout.write("\nEpoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
+                    fout.write("\n  training loss:                 " + str(train_loss))
+                    fout.write("\n  validation loss:               " + str(val_loss))
+                    fout.write("\n  validation perplexity:         " + str(val_ppl))
+                    fout.write("\n  best epoch:                    " + str(best_epoch))
+                    fout.write("\n  best validation perplexity:    " + str(best_val_ppl))
 
     else:
         model_path = os.path.join(args.train_dir, 'checkpoint_%s.pth.tar' % args.test)

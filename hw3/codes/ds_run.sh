@@ -4,7 +4,7 @@ for temp in 0.7 1.0
 do
 	for model in 'Tfmr_scratch' 'Tfmr_finetune'
 	do
-		for ds in 'random' 'top-k' 'top-p'
+		for ds in 'top-p'
 		do
 			if [ $ds = 'random' ]; then
 				echo \
