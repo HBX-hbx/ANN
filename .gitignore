@@ -9,4 +9,5 @@ hw3/codes/train/*
 hw3/codes/*.txt
 hw3/codes/logs
 hw3/codes/ds_run_results
+!hw3/codes/output.txt
 */qcReport.pdf
