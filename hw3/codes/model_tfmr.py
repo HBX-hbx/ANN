@@ -227,12 +227,11 @@ class TfmrModel(nn.Module):
         # TODO START
         # Implement the positional embeddings. Note that the length of cache hidden states used during inference
         if past_key_values is None:
-            past_length = 0
+            length = 0
             past_key_values = tuple([None] * len(self.h))
         else:
-            past_length = past_key_values[0][0].size(-2)
-
-        position_ids = torch.arange(past_length, input_shape[-1] + past_length, dtype=torch.long, device=device)
+            length = past_key_values[0][0].shape[-2]
+        position_ids = torch.arange(length, input_shape[-1] + length, dtype=torch.long, device=device)
         position_ids = position_ids.unsqueeze(0).view(-1, input_shape[-1])
         position_embeds = self.wpe(position_ids)
         # TODO END
