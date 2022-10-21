@@ -230,8 +230,8 @@ if __name__ == '__main__':
             model_path = os.path.join(args.pretrain_dir, 'pretrained_ckpt.tar')
             if os.path.exists(model_path):
                 print("Loading model from %s" % model_path)
-                # model = torch.load(model_path)
-                model = load_model(model_path=model_path)
+                model = torch.load(model_path)
+                # model = load_model(model_path=model_path)
             else:
                 raise RuntimeError("No such checkpoint: %s"%model_path)
         model.to(device)
