@@ -11,3 +11,8 @@ hw3/codes/logs
 hw3/codes/ds_run_results
 !hw3/codes/output.txt
 */qcReport.pdf
+
+hw4/ghaReport.pdf
+hw4/codes/GAN/__pycache__
+hw4/codes/data
+hw4/code4/inception

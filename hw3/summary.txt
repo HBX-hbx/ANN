@@ -1,0 +1,237 @@
+########################
+# Missing Files
+########################
+# .DS_Store
+
+########################
+# Additional Files
+########################
+# ds_run.sh
+# README.md
+
+########################
+# Filled Code
+########################
+# ..\codes\model_tfmr.py:1
+            torch.tril(torch.ones((max_positions, max_positions), dtype=torch.uint8)).view(1, 1, max_positions, max_positions)
+
+# ..\codes\model_tfmr.py:2
+        # q, k, v: (bsz, num_heads, seq_len, head_features)
+        # attn_w: (bsz, num_heads, seq_len, seq_len)
+        seq_len = query.shape[-2]
+        attn_weights = torch.matmul(query, key.transpose(-1, -2))
+        causal_mask = self.bias[:, :, :seq_len, :seq_len].to(torch.bool)
+        attn_weights = F.softmax(attn_weights, dim=-1)
+        attn_output = torch.matmul(attn_weights, value)
+
+# ..\codes\model_tfmr.py:3
+        # tensor: (bsz, seq_len, num_features)
+        # to: (bsz, seq_len, num_heads, head_features)
+        # output: (bsz, num_heads, seq_len, head_features)
+        tensor = tensor.view(tensor.shape[:-1] + (num_heads, attn_head_size))
+        return tensor.permute(0, 2, 1, 3)
+
+# ..\codes\model_tfmr.py:4
+        # tensor: (bsz, num_heads, seq_len, head_features)
+        # to: (bsz, seq_len, num_heads, head_features)
+        # output: (bsz, seq_len, num_features)
+        tensor = tensor.permute(0, 2, 1, 3)
+        tensor = tensor.contiguous().view(tensor.shape[:-2] + (num_heads * attn_head_size,))
+        return tensor
+
+# ..\codes\model_tfmr.py:5
+        hidden_states = attn_output + residual
+        # without cross-connection
+        residual = hidden_states
+        hidden_states = self.ln_2(hidden_states)
+        mlp_output = self.mlp(hidden_states)
+
+        hidden_states = mlp_output + residual
+
+# ..\codes\model_tfmr.py:6
+        if past_key_values is None:
+            length = 0
+            past_key_values = tuple([None] * len(self.h))
+        else:
+            length = past_key_values[0][0].shape[-2]
+        position_ids = torch.arange(length, input_shape[-1] + length, dtype=torch.long, device=device)
+        position_ids = position_ids.unsqueeze(0).view(-1, input_shape[-1])
+        position_embeds = self.wpe(position_ids)
+
+# ..\codes\model_tfmr.py:7
+
+            s_logits = lm_logits[..., :-1, :].contiguous()
+
+            tmp_labels = labels.clone()
+            tmp_labels[:, 0] += 1
+
+            loss_mask = (tmp_labels != PAD_ID)
+
+            s_labels = labels[..., 1:].contiguous()
+            loss_mask = loss_mask[..., :-1]
+
+            loss = ce_loss_fct(s_logits.view(-1, s_logits.shape[-1]), s_labels.view(-1))
+            loss = loss.reshape(s_labels.shape)[loss_mask].mean()
+
+# ..\codes\model_tfmr.py:8
+                        bsz, n_vocabs = logits.shape
+                        tmp_prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
+                        sort_prob, sort_idx = tmp_prob.sort(1, True)
+                        cum_prob = torch.cumsum(sort_prob, dim=-1)
+                        mask = (cum_prob > top_p)
+                        mask[..., 1:] = mask[..., :-1].clone()
+                        mask[..., 0] = 0
+                        sort_idx = sort_idx + torch.arange(bsz, device=device, dtype=torch.long).unsqueeze(-1) * n_vocabs
+
+                        logits = logits.view(-1)
+                        logits[sort_idx[mask]] = -float('inf')
+                        logits = logits.reshape(bsz, n_vocabs)
+
+
+# ..\codes\model_tfmr.py:9
+                        bsz, n_vocabs = logits.shape
+                        tmp_prob = logits.softmax(dim=-1) # shape: (batch_size, num_vocabs)
+                        sort_prob, sort_idx = tmp_prob.sort(1, True)
+                        mask = torch.zeros(logits.shape, device=device, dtype=torch.long)
+                        mask[..., top_k:] = 1
+                        mask = mask.to(torch.bool)
+
+                        sort_idx = sort_idx + torch.arange(bsz, device=device, dtype=torch.long).unsqueeze(-1) * n_vocabs
+
+                        logits = logits.view(-1)
+                        logits[sort_idx[mask]] = -float('inf')
+                        logits = logits.reshape(bsz, n_vocabs)
+
+# ..\codes\main.py:1
+
+            tgt_ids = torch.tensor(data[st:ed]).to(device)
+
+            lm_logits = lm_logits[..., :-1, :].contiguous()
+
+            tgt_ids[:, 0] += 1
+            loss_mask = (tgt_ids != PAD_ID)
+
+            tgt_ids = tgt_ids[..., 1:].contiguous()
+            loss_mask = loss_mask[..., :-1]
+            loss = loss.reshape(tgt_ids.shape)[loss_mask].mean()
+
+
+
+########################
+# References
+########################
+
+########################
+# Other Modifications
+########################
+# _codes\main.py -> ..\codes\main.py
+# 21 + from torch.utils.tensorboard import SummaryWriter
+# 23 + writer = SummaryWriter('./logs')
+# 42 - parser.add_argument('--train_dir', type=str, default='./train_test',
+# 42 ?                                                              -----
+# 44 + parser.add_argument('--train_dir', type=str, default='./train',
+# 44 - parser.add_argument('--pretrain_dir', type=str, default='None',
+# 44 ?                                                         -    -
+# 46 + parser.add_argument('--pretrain_dir', type=str, default=None,
+# 55 -     help='The k for top-k sampling. Default: 40')
+# 55 ?                                                        --
+# 57 +     help='The k for top-k sampling. Default: 40')
+# 58 + parser.add_argument('--id', type=int, default=1,
+# 59 +     help='The id of the experiment for different 3 layers. Default: 1')
+# 61 +
+# 62 + setting_path = args.decode_strategy + '_temp_' + str(args.temperature)[2:] + '_modelname_' + str(args.test)
+# 63 + setting_path += '_expid_' + str(args.id)
+# 82 -             all_loss += loss.cpu().numpy().tolist()
+# 96 +             all_loss += [loss.cpu().numpy().tolist()]
+# 96 ?                         +                           +
+# 174 + def load_model(model_path):
+# 175 +     # test different 3 layers
+# 176 +     with open(args.model_config) as fin:
+# 177 +         model_config = json.load(fin)
+# 178 +         config = ModelConfig(**model_config)
+# 179 +     model = TfmrLMHeadModel(config)
+# 180 +
+# 181 +     model_12_dict = torch.load(model_path).state_dict()
+# 182 +     target_prefix = [0, 1, 2]
+# 183 +     target_prefix = ['transformer.h.' + str(i) + '.' for i in target_prefix]
+# 184 +     if args.id == 1:
+# 185 +         disallowed_prefix = [3, 4, 5, 6, 7, 8, 9, 10, 11]
+# 186 +         allowed_prefix = [0, 1, 2]
+# 187 +     elif args.id == 2:
+# 188 +         disallowed_prefix = [1, 2, 3, 4, 6, 7, 8, 9, 10]
+# 189 +         allowed_prefix = [0, 5, 11]
+# 190 +     elif args.id == 3:
+# 191 +         disallowed_prefix = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+# 192 +         allowed_prefix = [9, 10, 11]
+# 193 +     else:
+# 194 +         raise ValueError('Unknown exp id %s' % str(args.id))
+# 195 +     allowed_prefix = ['transformer.h.' + str(i) + '.' for i in allowed_prefix]
+# 196 +     disallowed_prefix = tuple(['transformer.h.' + str(i) + '.' for i in disallowed_prefix])
+# 197 +     model_3_dict = dict(filter(lambda x: not x[0].startswith(disallowed_prefix), model_12_dict.items()))
+# 198 +
+# 199 +     keys = list(model_3_dict.keys())
+# 200 +     for _, (a, t) in enumerate(zip(allowed_prefix, target_prefix)):
+# 201 +         for key in keys:
+# 202 +             if key.startswith(a):
+# 203 +                 model_3_dict[key.replace(a, t)] = model_3_dict.pop(key)
+# 204 +
+# 205 +     model.load_state_dict(model_3_dict)
+# 206 +     return model
+# 207 +
+# 163 -     device = "cuda:6" #torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# 163 ?              ----------                  --
+# 211 +     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# 234 +                 # model = load_model(model_path=model_path)
+# 227 -                 epoch_time = time.time() - start_time
+# 227 ? ----
+# 276 +             epoch_time = time.time() - start_time
+# 228 -                 print("Epoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
+# 228 ? ----
+# 277 +             print("Epoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
+# 229 -                 print("  training loss:                 " + str(train_loss))
+# 229 ? ----
+# 278 +             print("  training loss:                 " + str(train_loss))
+# 230 -                 print("  validation loss:               " + str(val_loss))
+# 230 ? ----
+# 279 +             print("  validation loss:               " + str(val_loss))
+# 231 -                 print("  validation perplexity:         " + str(val_ppl))
+# 231 ? ----
+# 280 +             print("  validation perplexity:         " + str(val_ppl))
+# 232 -                 print("  best epoch:                    " + str(best_epoch))
+# 232 ? ----
+# 281 +             print("  best epoch:                    " + str(best_epoch))
+# 233 -                 print("  best validation perplexity:    " + str(best_val_ppl))
+# 233 ? ----
+# 282 +             print("  best validation perplexity:    " + str(best_val_ppl))
+# 283 +             writer.add_scalars('Loss', {'train': train_loss, 'val': val_loss}, epoch)
+# 234 -             else:
+# 284 +             # else:
+# 284 ?             ++
+# 235 -                 print("Validation loss: %.3f, becomes larger. Stop training."%val_ppl)
+# 285 +             #     print("Validation loss: %.3f, becomes larger. Stop training."%val_ppl)
+# 285 ?            ++
+# 236 -                 break
+# 286 +             #     break
+# 286 ?             ++
+# 287 +             if epoch == args.num_epochs:
+# 288 +                 with open('train_val_%s.txt'%args.name, 'w') as fout:
+# 289 +                     fout.write("\nEpoch " + str(epoch) + " of " + str(args.num_epochs) + " took " + str(epoch_time) + "s")
+# 290 +                     fout.write("\n  training loss:                 " + str(train_loss))
+# 291 +                     fout.write("\n  validation loss:               " + str(val_loss))
+# 292 +                     fout.write("\n  validation perplexity:         " + str(val_ppl))
+# 293 +                     fout.write("\n  best epoch:                    " + str(best_epoch))
+# 294 +                     fout.write("\n  best validation perplexity:    " + str(best_val_ppl))
+# 309 +         eval_result = evaluate(gen_ids=result, truth_ids=data_remove_pad["test"])
+# 251 -         with open('output_%s.txt'%args.decode_strategy, 'w') as fout:
+# 251 ?                                   ^^ -------- ^^^  ^^^
+# 310 +         with open('output_%s.txt'%setting_path, 'w') as fout:
+# 310 ?                                   ^^^^^^  ^  ^
+# 311 +             fout.write("perplexity %.2f\nforward BLEU-4 %.3f\nbackward BLEU-4 %.3f\nharmonic BLEU-4 %.3f\n" % (test_ppl, eval_result["fw-bleu-4"], eval_result["bw-bleu-4"], eval_result["fw-bw-bleu-4"]))
+# 312 +             fout.write('============== generating sentence ===================\n')
+# 256 -         eval_result = evaluate(gen_ids=result, truth_ids=data_remove_pad["test"])
+# 317 +
+# 258 -         print("        test_set, write inference results to output_%s.txt"%args.decode_strategy)
+# 258 ?                                                                            ^^ -------- ^^^  ^^^
+# 319 +         print("        test_set, write inference results to output_%s.txt"%setting_path)
+# 319 ?                                                                            ^^^^^^  ^  ^
+
