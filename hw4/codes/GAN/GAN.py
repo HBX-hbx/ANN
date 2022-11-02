@@ -28,6 +28,27 @@ class Generator(nn.Module):
         self.latent_dim = latent_dim
 
 		# TODO START
+        # MLP_based
+        # self.decoder = nn.Sequential(
+        #     # (latent_dim,)
+        #     nn.Linear(latent_dim, 128),
+        #     nn.BatchNorm1d(128),
+        #     nn.ReLU(),
+        #     # (128,)
+        #     nn.Linear(128, 256),
+        #     nn.BatchNorm1d(256),
+        #     nn.ReLU(),
+        #     # (256,)
+        #     nn.Linear(256, 512),
+        #     nn.BatchNorm1d(512),
+        #     nn.ReLU(),
+        #     # (512,)
+        #     nn.Linear(512, 1024),
+        #     nn.Tanh(),
+        #     # (1024,)
+        # )
+        
+        # CNN_based
         self.decoder = nn.Sequential(
             # (latent_dim, 1, 1)
             nn.ConvTranspose2d(latent_dim, hidden_dim * 4, kernel_size=4, stride=1, padding=0),
@@ -54,6 +75,9 @@ class Generator(nn.Module):
             *   z (torch.FloatTensor): [batch_size, latent_dim, 1, 1]
         '''
         z = z.to(next(self.parameters()).device)
+        # MLP_based
+        # return self.decoder(z.squeeze(-1).squeeze(-1)).reshape(-1, 1, 32, 32)
+        # CNN_based
         return self.decoder(z)
 
     def restore(self, ckpt_dir):
@@ -78,6 +102,27 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.num_channels = num_channels
         self.hidden_dim = hidden_dim
+        
+        # MLP_based
+        # self.clf = nn.Sequential(
+        #     # (1024,)
+        #     nn.Linear(1024, 512),
+        #     nn.Dropout(0.3),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     # (512,)
+        #     nn.Linear(512, 256),
+        #     nn.Dropout(0.3),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     # (256,)
+        #     nn.Linear(256, 128),
+        #     nn.Dropout(0.3),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     # (128,)
+        #     nn.Linear(128, 1),
+        #     nn.Sigmoid()
+        # )
+        
+        # CNN_based
         self.clf = nn.Sequential(
             # input is (num_channels) x 32 x 32
             nn.Conv2d(num_channels, hidden_dim, 4, 2, 1, bias=False),
@@ -96,6 +141,9 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, x):
+        # MLP_based
+        # return self.clf(x.reshape(-1, 1024)).view(-1, 1).squeeze(1)
+        # CNN_based
         return self.clf(x).view(-1, 1).squeeze(1)
 
     def restore(self, ckpt_dir):

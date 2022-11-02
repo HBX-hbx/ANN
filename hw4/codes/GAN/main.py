@@ -36,13 +36,13 @@ def polate(le, ri, polate_cnt, pair_cnt):
     imgs = make_grid(imgs, nrow=polate_cnt) * 0.5 + 0.5
     print('saving to %s' % os.path.join('polate_imgs', path))
     save_image(imgs, os.path.join('polate_imgs', path))
-    
+
 
 def generate_sample():
     fixed_noise = torch.randn(100, args.latent_dim, 1, 1, device=device)
     imgs = make_grid(netG(fixed_noise), nrow=10) * 0.5 + 0.5
     save_image(imgs, "samples.png")
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_dir', default='./runs', type=str)
     args = parser.parse_args()
 
-    config = 'z-{}_h-{}_batch-{}_num-train-steps-{}'.format(args.latent_dim, args.generator_hidden_dim, args.batch_size, args.num_training_steps)
+    config = 'z-{}_h-{}_batch-{}_num-train-steps-{}-MLP'.format(args.latent_dim, args.generator_hidden_dim, args.batch_size, args.num_training_steps)
     args.ckpt_dir = os.path.join(args.ckpt_dir, config)
     args.log_dir = os.path.join(args.log_dir, config)
     device = torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
@@ -81,31 +81,31 @@ if __name__ == "__main__":
     restore_ckpt_path = os.path.join(args.ckpt_dir, str(max(int(step) for step in os.listdir(args.ckpt_dir))))
     netG.restore(restore_ckpt_path)
     
-    # polate(-1, 2, 10, 10)
-    generate_sample()
+    # polate(0, 1, 10, 10)
+    # generate_sample()
 
-    # num_samples = 3000
-    # real_imgs = None
-    # real_dl = iter(dataset.training_loader)
-    # while real_imgs is None or real_imgs.size(0) < num_samples:
-    #     imgs = next(real_dl)
-    #     if real_imgs is None:
-    #         real_imgs = imgs[0]
-    #     else:
-    #         real_imgs = torch.cat((real_imgs, imgs[0]), 0)
-    # real_imgs = real_imgs[:num_samples].expand(-1, 3, -1, -1) * 0.5 + 0.5
+    num_samples = 3000
+    real_imgs = None
+    real_dl = iter(dataset.training_loader)
+    while real_imgs is None or real_imgs.size(0) < num_samples:
+        imgs = next(real_dl)
+        if real_imgs is None:
+            real_imgs = imgs[0]
+        else:
+            real_imgs = torch.cat((real_imgs, imgs[0]), 0)
+    real_imgs = real_imgs[:num_samples].expand(-1, 3, -1, -1) * 0.5 + 0.5
 
-    # with torch.no_grad():
-    #     samples = None
-    #     while samples is None or samples.size(0) < num_samples:
-    #         imgs = netG.forward(torch.randn(args.batch_size, netG.latent_dim, 1, 1, device=device))
-    #         if samples is None:
-    #             samples = imgs
-    #         else:
-    #             samples = torch.cat((samples, imgs), 0)
-    # samples = samples[:num_samples].expand(-1, 3, -1, -1) * 0.5 + 0.5
-    # samples = samples.cpu()
+    with torch.no_grad():
+        samples = None
+        while samples is None or samples.size(0) < num_samples:
+            imgs = netG.forward(torch.randn(args.batch_size, netG.latent_dim, 1, 1, device=device))
+            if samples is None:
+                samples = imgs
+            else:
+                samples = torch.cat((samples, imgs), 0)
+    samples = samples[:num_samples].expand(-1, 3, -1, -1) * 0.5 + 0.5
+    samples = samples.cpu()
 
-    # fid = fid_score.calculate_fid_given_images(real_imgs, samples, args.batch_size, device)
-    # tb_writer.add_scalar('fid', fid)
-    # print("FID score: {:.3f}".format(fid), flush=True)
+    fid = fid_score.calculate_fid_given_images(real_imgs, samples, args.batch_size, device)
+    tb_writer.add_scalar('fid', fid)
+    print("FID score: {:.3f}".format(fid), flush=True)
