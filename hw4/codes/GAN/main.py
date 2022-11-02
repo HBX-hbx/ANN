@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_dir', default='./runs', type=str)
     args = parser.parse_args()
 
-    config = 'z-{}_h-{}_batch-{}_num-train-steps-{}-MLP'.format(args.latent_dim, args.generator_hidden_dim, args.batch_size, args.num_training_steps)
+    config = 'z-{}_h-{}_batch-{}_num-train-steps-{}'.format(args.latent_dim, args.generator_hidden_dim, args.batch_size, args.num_training_steps)
     args.ckpt_dir = os.path.join(args.ckpt_dir, config)
     args.log_dir = os.path.join(args.log_dir, config)
     device = torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')

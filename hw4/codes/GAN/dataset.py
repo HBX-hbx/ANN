@@ -38,7 +38,7 @@ class Dataset(object):
             batch_size=batch_size,
             num_workers=2,
             shuffle=True,
-            pin_memory=False
+            pin_memory=True
         )
 
         self._validation_loader = DataLoader(
@@ -46,7 +46,7 @@ class Dataset(object):
             batch_size=batch_size,
             num_workers=2,
             shuffle=False,
-            pin_memory=False
+            pin_memory=True
         )
 
     @property
