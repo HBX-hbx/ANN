@@ -14,6 +14,9 @@ hw3/codes/ds_run_results
 
 hw4/ghaReport.pdf
 hw4/codes/GAN/__pycache__
+hw4/codes/GAN/results
+hw4/codes/GAN/runs
+hw4/codes/GAN/pytorch_fid/__pycache__
 hw4/codes/inception
 hw4/codes/data
 

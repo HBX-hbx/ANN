@@ -44,7 +44,7 @@ class Generator(nn.Module):
             # (hidden_dim, 16, 16)
             nn.ConvTranspose2d(hidden_dim, num_channels, kernel_size=4, stride=2, padding=1),
             nn.Tanh(),
-            # (num_channels, 1, 1)
+            # (num_channels, 32, 32)
         )
 		# TODO END
 

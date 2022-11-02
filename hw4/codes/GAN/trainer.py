@@ -46,17 +46,19 @@ class Trainer(object):
 		# compute the gradients of binary_cross_entropy(netD(real_imgs), 1) w.r.t. netD
         # record average D(real_imgs)
         # TODO START		
-        loss_D_real = BCE_criterion(self._netD(real_imgs), torch.ones)
-        D_x = 
-        loss_real.backward()
+        D_x = self._netD(real_imgs) # expect to be true
+        loss_D_real = BCE_criterion(D_x, torch.ones_like(D_x))
+        D_x = D_x.mean()
+        loss_D_real.backward()
         # TODO END
 
         # ** accumulate ** the gradients of binary_cross_entropy(netD(fake_imgs), 0) w.r.t. netD
         # record average D(fake_imgs)
         # TODO START
-        loss_D_fake = 
-        D_G_z1 = 
-        loss_fake.backward()
+        D_G_z1 = self._netD(fake_imgs) # expect to be false
+        loss_D_fake = BCE_criterion(D_G_z1, torch.zeros_like(D_G_z1))
+        D_G_z1 = D_G_z1.mean()
+        loss_D_fake.backward(retain_graph=True)
         # TODO END
 		
 		# update netD
@@ -71,8 +73,9 @@ class Trainer(object):
         # compute the gradients of binary_cross_entropy(netD(fake_imgs), 1) w.r.t. netG
         # record average D(fake_imgs)
         # TODO START
-        loss_G = 
-        D_G_z2 = 
+        D_G_z2 = self._netD(fake_imgs)
+        loss_G = BCE_criterion(D_G_z2, torch.ones_like(D_G_z2))
+        D_G_z2 = D_G_z2.mean()
         loss_G.backward()
         # TODO END
 		
