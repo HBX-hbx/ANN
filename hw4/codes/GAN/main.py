@@ -38,6 +38,12 @@ def polate(le, ri, polate_cnt, pair_cnt):
     save_image(imgs, os.path.join('polate_imgs', path))
     
 
+def generate_sample():
+    fixed_noise = torch.randn(100, args.latent_dim, 1, 1, device=device)
+    imgs = make_grid(netG(fixed_noise), nrow=10) * 0.5 + 0.5
+    save_image(imgs, "samples.png")
+    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--do_train', action='store_true')
@@ -75,7 +81,8 @@ if __name__ == "__main__":
     restore_ckpt_path = os.path.join(args.ckpt_dir, str(max(int(step) for step in os.listdir(args.ckpt_dir))))
     netG.restore(restore_ckpt_path)
     
-    polate(-1, 2, 10, 10)
+    # polate(-1, 2, 10, 10)
+    generate_sample()
 
     # num_samples = 3000
     # real_imgs = None
