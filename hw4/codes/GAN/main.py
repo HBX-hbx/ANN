@@ -15,9 +15,12 @@ import argparse
 
 def polate(le, ri, polate_cnt, pair_cnt):
     # interpolate j from [le, ri]
-    # sample #polate_cnt = 10 points
-    # z = j * z1 + (1 - j) * z2
+    # polate_cnt: 10, the number of sample points for each pair
+    # pari_cnt: the number of pairs
+    # calc z = j * z1 + (1 - j) * z2
     imgs = None
+    if not os.path.exists('polate_imgs'):
+        os.mkdir('polate_imgs')
     for _ in range(pair_cnt):
         path = 'polate_le-%d_ri-%d.png' % (le, ri)
         z1 = torch.randn(1, args.latent_dim, 1, 1, device=device)
